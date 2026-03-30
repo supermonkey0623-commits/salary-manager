@@ -2,6 +2,8 @@
 // Supabase データベース型定義
 // =============================================
 
+// Supabase v2 の createClient<Database> ジェネリックが期待する構造に合わせる
+// 各テーブルに Relationships を追加し、スキーマに Views / Functions / Enums / CompositeTypes を追加
 export type Database = {
   public: {
     Tables: {
@@ -9,18 +11,25 @@ export type Database = {
         Row: IncomeSource;
         Insert: IncomeSourceInsert;
         Update: IncomeSourceUpdate;
+        Relationships: [];
       };
       monthly_records: {
         Row: MonthlyRecord;
         Insert: MonthlyRecordInsert;
         Update: MonthlyRecordUpdate;
+        Relationships: [];
       };
       tax_settings: {
         Row: TaxSetting;
         Insert: TaxSettingInsert;
         Update: TaxSettingUpdate;
+        Relationships: [];
       };
     };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
+    Enums: Record<string, never>;
+    CompositeTypes: Record<string, never>;
   };
 };
 
