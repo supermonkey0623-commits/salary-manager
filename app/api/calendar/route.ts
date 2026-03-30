@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { calcSalary } from "@/lib/salary";
 import type { CalendarEvent } from "@/lib/salary";
+import type { IncomeSource } from "@/types/database";
 
 // Google Calendar APIのベースURL
 const CALENDAR_API_BASE = "https://www.googleapis.com/calendar/v3";
@@ -148,7 +149,7 @@ export async function GET(req: NextRequest) {
   }
 
   // 収入源ごとにキーワードフィルタリング→給与計算
-  const salaries = sources.map((source) => {
+  const salaries = (sources as IncomeSource[]).map((source) => {
     // キーワードマッチ（半角英数字は単語境界、日本語は部分一致）
     const matched = allEvents.filter((ev) =>
       matchesKeyword(ev.summary, source.keyword)
