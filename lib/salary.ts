@@ -87,11 +87,23 @@ function parseDate(iso: string): Date {
   return new Date(iso);
 }
 
-// 指定した日のHH:MMからDateを生成するヘルパー
-function dateAtHour(base: Date, hour: number, minute = 0): Date {
-  const d = new Date(base);
-  d.setHours(hour, minute, 0, 0);
-  return d;
+// DateをN日ずらす（UTCベースで安全に計算）
+function addDays(d: Date, days: number): Date {
+  return new Date(d.getTime() + days * 24 * 3600 * 1000);
+}
+
+// 指定した日のJST HH:MMに対応するDateを生成する（UTC+9補正済み）
+// Vercel等のUTCサーバーでも正しくJST時刻を扱うために必要
+function dateAtHour(base: Date, jstHour: number, minute = 0): Date {
+  // base の JST 日付（年月日）を求める
+  const jstMs = base.getTime() + 9 * 3600 * 1000;
+  const jstBase = new Date(jstMs);
+  const y = jstBase.getUTCFullYear();
+  const m = jstBase.getUTCMonth();
+  const d = jstBase.getUTCDate();
+  // JST時刻をUTCに変換（UTC = JST - 9時間）
+  // jstHour - 9 が負になる場合はDate.UTCが前日に補正してくれる
+  return new Date(Date.UTC(y, m, d, jstHour - 9, minute));
 }
 
 // 2つの時間範囲の重複時間（時間単位）を計算
@@ -110,18 +122,14 @@ function calcNightHours(start: Date, end: Date): number {
   // 22:00〜翌5:00の深夜区間を構築（最大2区間）
   const nightSegments: Array<[Date, Date]> = [];
 
-  // 当日の22:00〜翌5:00
+  // 当日（JST）の22:00〜翌日（JST）5:00
   const night1Start = dateAtHour(start, NIGHT_START_HOUR);
-  const night1End = new Date(night1Start);
-  night1End.setDate(night1End.getDate() + 1);
-  night1End.setHours(NIGHT_END_HOUR, 0, 0, 0);
+  const night1End = dateAtHour(addDays(start, 1), NIGHT_END_HOUR);
   nightSegments.push([night1Start, night1End]);
 
-  // 前日の22:00〜当日5:00（夜をまたぐシフト対応）
+  // 前日（JST）の22:00〜当日（JST）5:00（夜をまたぐシフト対応）
   const night2End = dateAtHour(start, NIGHT_END_HOUR);
-  const night2Start = new Date(night2End);
-  night2Start.setDate(night2Start.getDate() - 1);
-  night2Start.setHours(NIGHT_START_HOUR, 0, 0, 0);
+  const night2Start = dateAtHour(addDays(start, -1), NIGHT_START_HOUR);
   nightSegments.push([night2Start, night2End]);
 
   return nightSegments.reduce(
@@ -169,11 +177,17 @@ export function calcWorkBreakdown(
   const nightNormalHours = Math.min(nightHours, Math.max(0, LEGAL_DAILY_HOURS - dayHours));
   const nightOvertimeHours = Math.max(0, nightHours - nightNormalHours);
 
-  const fmt = (d: Date) =>
-    `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  // JST時刻で表示する（サーバーのローカルタイムに依存しないようUTC+9で計算）
+  const toJst = (d: Date) => new Date(d.getTime() + 9 * 3600 * 1000);
+  const fmt = (d: Date) => {
+    const j = toJst(d);
+    return `${String(j.getUTCHours()).padStart(2, "0")}:${String(j.getUTCMinutes()).padStart(2, "0")}`;
+  };
 
+  // 勤務日はJST基準の日付を使う
+  const jstStart = toJst(start);
   return {
-    date: start.toISOString().slice(0, 10),
+    date: jstStart.toISOString().slice(0, 10),
     eventTitle: event.summary,
     startTime: fmt(start),
     endTime: fmt(end),

@@ -51,9 +51,10 @@ export async function GET(req: NextRequest) {
 
   const [year, month] = yearMonth.split("-").map(Number);
 
-  // 月の開始・終了（UTC+9の日本時間で境界を設定）
-  const timeMin = new Date(year, month - 1, 1, 0, 0, 0).toISOString();
-  const timeMax = new Date(year, month, 1, 0, 0, 0).toISOString();
+  // 月の開始・終了をJST（UTC+9）基準で設定する
+  // Date.UTCの時間に -9 を指定することでJST 0:00 = UTC -9:00（前日15:00）を表現できる
+  const timeMin = new Date(Date.UTC(year, month - 1, 1, -9, 0, 0)).toISOString();
+  const timeMax = new Date(Date.UTC(year, month, 1, -9, 0, 0)).toISOString();
 
   // 有効な収入源を取得
   const { data: sources, error: srcError } = await supabase
