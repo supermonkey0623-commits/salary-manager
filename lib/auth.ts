@@ -19,8 +19,9 @@ export const authOptions: NextAuthOptions = {
             "https://www.googleapis.com/auth/calendar.readonly",
           ].join(" "),
           // リフレッシュトークン取得のため offline を指定
-          // prompt を省略することでアカウント選択画面を毎回表示しない
+          // select_account：毎回同意画面は出さずアカウント選択のみ表示
           access_type: "offline",
+          prompt: "select_account",
         },
       },
     }),
@@ -40,18 +41,25 @@ export const authOptions: NextAuthOptions = {
     },
     // JWTにアクセストークン・リフレッシュトークンを保持
     async jwt({ token, account }) {
+      // 初回サインイン時：account が存在するので即座にトークンを返す
+      // ここで expires_at チェックをしないことでログインループを防ぐ
       if (account) {
-        token.accessToken = account.access_token;
-        token.refreshToken = account.refresh_token;
-        token.accessTokenExpires = account.expires_at
-          ? account.expires_at * 1000
-          : 0;
+        return {
+          ...token,
+          accessToken: account.access_token,
+          refreshToken: account.refresh_token,
+          // expires_at が未設定の場合はデフォルト1時間を設定
+          accessTokenExpires: account.expires_at
+            ? account.expires_at * 1000
+            : Date.now() + 3600 * 1000,
+        };
       }
-      // アクセストークンの有効期限チェック（期限切れなら再認証を促す）
-      if (Date.now() < (token.accessTokenExpires as number)) {
+      // 2回目以降：トークンが有効期限内であればそのまま返す
+      // accessTokenExpires が未設定の場合も有効とみなす
+      if (!token.accessTokenExpires || Date.now() < (token.accessTokenExpires as number)) {
         return token;
       }
-      // 期限切れの場合はトークンをクリアして再認証を促す
+      // 期限切れの場合はエラーを設定して再認証を促す
       return { ...token, error: "RefreshAccessTokenError" };
     },
     // セッションにアクセストークンを含める
