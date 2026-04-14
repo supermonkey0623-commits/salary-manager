@@ -18,9 +18,9 @@ export const authOptions: NextAuthOptions = {
             "profile",
             "https://www.googleapis.com/auth/calendar.readonly",
           ].join(" "),
-          // 毎回同意画面を表示してリフレッシュトークンを取得
+          // リフレッシュトークン取得のため offline を指定
+          // prompt を省略することでアカウント選択画面を毎回表示しない
           access_type: "offline",
-          prompt: "consent",
         },
       },
     }),
@@ -65,9 +65,9 @@ export const authOptions: NextAuthOptions = {
     signIn: "/login",
     error: "/login",
   },
-  // セッション有効期限：24時間
+  // セッション有効期限：30日
   session: {
     strategy: "jwt",
-    maxAge: 24 * 60 * 60,
+    maxAge: 30 * 24 * 60 * 60,
   },
 };
