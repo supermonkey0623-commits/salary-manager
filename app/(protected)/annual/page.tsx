@@ -730,6 +730,28 @@ export default function AnnualPage() {
             />
           </div>
 
+          {/* 給与明細サイトへのクイックリンク */}
+          <div className="flex gap-2 mb-3">
+            <a
+              href="https://plenus-cws.company.works-hi.com/self-workflow/csd/main"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-orange-50 border border-orange-200 rounded-xl text-xs font-medium text-orange-700 hover:bg-orange-100 transition-colors"
+            >
+              <span>🍱</span>
+              <span>やよい軒 明細</span>
+            </a>
+            <a
+              href="https://kdedu.smarthr.jp/payslips?ref_notification_id=44ea7435-0925-4ca3-87a3-802a456b95e7"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-purple-50 border border-purple-200 rounded-xl text-xs font-medium text-purple-700 hover:bg-purple-100 transition-colors"
+            >
+              <span>🎓</span>
+              <span>N高 明細</span>
+            </a>
+          </div>
+
           {sources.length === 0 ? (
             <div className="bg-white rounded-2xl border border-gray-200 p-8 text-center">
               <p className="text-gray-500 text-sm mb-2">収入源が登録されていません</p>
