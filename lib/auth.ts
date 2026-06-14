@@ -1,5 +1,34 @@
 import { NextAuthOptions } from "next-auth";
+import { JWT } from "next-auth/jwt";
 import GoogleProvider from "next-auth/providers/google";
+
+async function refreshAccessToken(token: JWT): Promise<JWT> {
+  try {
+    const response = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id: process.env.GOOGLE_CLIENT_ID!,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+        grant_type: "refresh_token",
+        refresh_token: token.refreshToken as string,
+      }),
+    });
+
+    const refreshed = await response.json();
+    if (!response.ok) throw refreshed;
+
+    return {
+      ...token,
+      accessToken: refreshed.access_token,
+      accessTokenExpires: Date.now() + refreshed.expires_in * 1000,
+      // リフレッシュトークンは新しいものが返ってきた場合のみ更新
+      refreshToken: refreshed.refresh_token ?? token.refreshToken,
+    };
+  } catch {
+    return { ...token, error: "RefreshAccessTokenError" };
+  }
+}
 
 // 許可するメールアドレス（環境変数から取得）
 const ALLOWED_EMAIL = process.env.ALLOWED_EMAIL;
@@ -19,9 +48,7 @@ export const authOptions: NextAuthOptions = {
             "https://www.googleapis.com/auth/calendar.readonly",
           ].join(" "),
           // リフレッシュトークン取得のため offline を指定
-          // select_account：毎回同意画面は出さずアカウント選択のみ表示
           access_type: "offline",
-          prompt: "select_account",
         },
       },
     }),
@@ -41,26 +68,23 @@ export const authOptions: NextAuthOptions = {
     },
     // JWTにアクセストークン・リフレッシュトークンを保持
     async jwt({ token, account }) {
-      // 初回サインイン時：account が存在するので即座にトークンを返す
-      // ここで expires_at チェックをしないことでログインループを防ぐ
+      // 初回サインイン時
       if (account) {
         return {
           ...token,
           accessToken: account.access_token,
           refreshToken: account.refresh_token,
-          // expires_at が未設定の場合はデフォルト1時間を設定
           accessTokenExpires: account.expires_at
             ? account.expires_at * 1000
             : Date.now() + 3600 * 1000,
         };
       }
-      // 2回目以降：トークンが有効期限内であればそのまま返す
-      // accessTokenExpires が未設定の場合も有効とみなす
+      // トークンが有効期限内であればそのまま返す
       if (!token.accessTokenExpires || Date.now() < (token.accessTokenExpires as number)) {
         return token;
       }
-      // 期限切れの場合はエラーを設定して再認証を促す
-      return { ...token, error: "RefreshAccessTokenError" };
+      // 期限切れ → リフレッシュトークンで自動更新
+      return refreshAccessToken(token);
     },
     // セッションにアクセストークンを含める
     async session({ session, token }) {

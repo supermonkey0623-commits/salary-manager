@@ -2,9 +2,8 @@
 
 import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 
-// エラーメッセージのマッピング
 const ERROR_MESSAGES: Record<string, string> = {
   AccessDenied: "このGoogleアカウントはアクセスが許可されていません。",
   SessionExpired: "セッションが期限切れになりました。再度ログインしてください。",
@@ -18,9 +17,28 @@ function LoginContent() {
     ? ERROR_MESSAGES[errorCode] ?? ERROR_MESSAGES.Default
     : null;
 
+  // エラーがない場合は自動的にGoogle OAuthへリダイレクト
+  useEffect(() => {
+    if (!errorCode) {
+      signIn("google", { callbackUrl: "/payslip" });
+    }
+  }, [errorCode]);
+
   const handleLogin = () => {
     signIn("google", { callbackUrl: "/payslip" });
   };
+
+  // エラーなし → 自動リダイレクト中の表示
+  if (!errorMessage) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-400 mx-auto mb-3" />
+          <p className="text-sm text-gray-500">ログイン中...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -33,18 +51,15 @@ function LoginContent() {
         </div>
 
         {/* エラーメッセージ */}
-        {errorMessage && (
-          <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-sm text-red-600">{errorMessage}</p>
-          </div>
-        )}
+        <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-sm text-red-600">{errorMessage}</p>
+        </div>
 
         {/* Googleログインボタン */}
         <button
           onClick={handleLogin}
           className="w-full flex items-center justify-center gap-3 bg-white border border-gray-300 rounded-lg py-3 px-4 text-sm font-medium text-gray-700 hover:bg-gray-50 active:bg-gray-100 transition-colors shadow-sm"
         >
-          {/* Googleアイコン */}
           <svg width="18" height="18" viewBox="0 0 18 18">
             <path
               fill="#4285F4"
