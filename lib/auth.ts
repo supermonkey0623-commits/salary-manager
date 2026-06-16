@@ -20,9 +20,9 @@ async function refreshAccessToken(token: JWT): Promise<JWT> {
 
     return {
       ...token,
+      error: undefined, // リフレッシュ成功時はエラーをクリア
       accessToken: refreshed.access_token,
       accessTokenExpires: Date.now() + refreshed.expires_in * 1000,
-      // リフレッシュトークンは新しいものが返ってきた場合のみ更新
       refreshToken: refreshed.refresh_token ?? token.refreshToken,
     };
   } catch {
@@ -73,7 +73,8 @@ export const authOptions: NextAuthOptions = {
         return {
           ...token,
           accessToken: account.access_token,
-          refreshToken: account.refresh_token,
+          // Google は再ログイン時にリフレッシュトークンを返さないことがある → 既存を維持
+          refreshToken: account.refresh_token ?? token.refreshToken,
           accessTokenExpires: account.expires_at
             ? account.expires_at * 1000
             : Date.now() + 3600 * 1000,

@@ -14,12 +14,8 @@ export default async function middleware(req: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // セッションエラー（アクセストークン期限切れ）→ 再認証
-  if (token.error === "RefreshAccessTokenError") {
-    const loginUrl = new URL("/login", req.url);
-    loginUrl.searchParams.set("error", "SessionExpired");
-    return NextResponse.redirect(loginUrl);
-  }
+  // RefreshAccessTokenError はここでは判定しない
+  // → getServerSession 経由の jwt callback でリフレッシュを試みてから判定する
 
   return NextResponse.next();
 }

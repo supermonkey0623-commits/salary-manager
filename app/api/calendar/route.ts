@@ -41,6 +41,10 @@ export async function GET(req: NextRequest) {
   if (!session?.accessToken) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  // リフレッシュ失敗時はセッション切れとして返す
+  if (session.error === "RefreshAccessTokenError") {
+    return NextResponse.json({ error: "SessionExpired" }, { status: 401 });
+  }
 
   const { searchParams } = new URL(req.url);
   const yearMonth = searchParams.get("month"); // 例: "2024-01"

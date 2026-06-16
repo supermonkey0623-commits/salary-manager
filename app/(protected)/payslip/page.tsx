@@ -340,6 +340,11 @@ export default function PayslipPage() {
       const data = await res.json();
 
       if (!res.ok) {
+        if (res.status === 401) {
+          // セッション切れ → ログインページへ
+          window.location.href = "/login?error=SessionExpired";
+          return;
+        }
         setError(data.error ?? "データの取得に失敗しました");
         return;
       }
