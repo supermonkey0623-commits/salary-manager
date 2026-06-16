@@ -48,7 +48,9 @@ export const authOptions: NextAuthOptions = {
             "https://www.googleapis.com/auth/calendar.readonly",
           ].join(" "),
           // リフレッシュトークン取得のため offline を指定
+          // consent: ログインのたびに同意画面を表示し、必ずリフレッシュトークンを取得する
           access_type: "offline",
+          prompt: "consent",
         },
       },
     }),
