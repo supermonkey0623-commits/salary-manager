@@ -5,6 +5,12 @@ import SessionProvider from "@/components/SessionProvider";
 export const metadata: Metadata = {
   title: "給与管理",
   description: "個人給与管理Webアプリ",
+  themeColor: "#2563eb",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "給与管理",
+  },
 };
 
 export default function RootLayout({
