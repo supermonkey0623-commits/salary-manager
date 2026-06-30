@@ -75,77 +75,70 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ salaries: [], message: "収入源が登録されていません" });
   }
 
-  // Google Calendar APIでイベントを取得（全カレンダー対象）
-  let allEvents: CalendarEvent[] = [];
-  try {
-    // まずカレンダー一覧を取得
-    const calListRes = await fetch(
-      `${CALENDAR_API_BASE}/users/me/calendarList?maxResults=250`,
-      { headers: { Authorization: `Bearer ${session.accessToken}` } }
-    );
+  const params = new URLSearchParams({
+    timeMin,
+    timeMax,
+    singleEvents: "true",
+    orderBy: "startTime",
+    maxResults: "500",
+  });
 
-    if (!calListRes.ok) {
-      const errText = await calListRes.text();
-      console.error("CalendarList API error:", errText);
-      return NextResponse.json(
-        { error: "Google Calendarの取得に失敗しました。再ログインしてください。" },
-        { status: 502 }
+  // イベントを1カレンダーから取得するヘルパー
+  async function fetchEvents(calId: string): Promise<CalendarEvent[]> {
+    try {
+      const res = await fetch(
+        `${CALENDAR_API_BASE}/calendars/${encodeURIComponent(calId)}/events?${params}`,
+        { headers: { Authorization: `Bearer ${session!.accessToken}` } }
       );
+      if (!res.ok) return [];
+      const data = await res.json();
+      return (data.items ?? []).map((item: {
+        id: string;
+        summary?: string;
+        description?: string;
+        start?: { dateTime?: string; date?: string };
+        end?: { dateTime?: string; date?: string };
+      }): CalendarEvent => ({
+        id: item.id,
+        summary: item.summary ?? "",
+        description: item.description,
+        start: item.start?.dateTime ?? item.start?.date ?? "",
+        end: item.end?.dateTime ?? item.end?.date ?? "",
+        date: item.start?.date,
+      }));
+    } catch {
+      return [];
     }
+  }
 
-    const calListData = await calListRes.json();
-    const calendarIds: string[] = (calListData.items ?? []).map(
-      (cal: { id: string }) => cal.id
-    );
+  // calendar_id 未設定の収入源がある場合のみ全カレンダー取得が必要
+  const sourcesWithoutCalId = (sources as IncomeSource[]).filter((s) => !s.calendar_id);
+  let allCalendarEvents: CalendarEvent[] = [];
 
-    // 各カレンダーからイベントを並列取得
-    const params = new URLSearchParams({
-      timeMin,
-      timeMax,
-      singleEvents: "true",
-      orderBy: "startTime",
-      maxResults: "500",
-    });
-
-    const eventResults = await Promise.all(
-      calendarIds.map(async (calId) => {
-        try {
-          const res = await fetch(
-            `${CALENDAR_API_BASE}/calendars/${encodeURIComponent(calId)}/events?${params}`,
-            { headers: { Authorization: `Bearer ${session.accessToken}` } }
-          );
-          if (!res.ok) return [];
-          const data = await res.json();
-          return data.items ?? [];
-        } catch {
-          return [];
-        }
-      })
-    );
-
-    // 全カレンダーのイベントを結合・重複除去
-    const seen = new Set<string>();
-    allEvents = eventResults.flat().reduce((acc, item: {
-      id: string;
-      summary?: string;
-      description?: string;
-      start?: { dateTime?: string; date?: string };
-      end?: { dateTime?: string; date?: string };
-    }) => {
-      if (!seen.has(item.id)) {
-        seen.add(item.id);
-        acc.push({
-          id: item.id,
-          summary: item.summary ?? "",
-          description: item.description,  // 説明欄（休憩時間の記載に使用）
-          start: item.start?.dateTime ?? item.start?.date ?? "",
-          end: item.end?.dateTime ?? item.end?.date ?? "",
-          date: item.start?.date,
-        });
+  try {
+    if (sourcesWithoutCalId.length > 0) {
+      // 全カレンダー一覧を取得してイベントを結合（後方互換）
+      const calListRes = await fetch(
+        `${CALENDAR_API_BASE}/users/me/calendarList?maxResults=250`,
+        { headers: { Authorization: `Bearer ${session.accessToken}` } }
+      );
+      if (!calListRes.ok) {
+        return NextResponse.json(
+          { error: "Google Calendarの取得に失敗しました。再ログインしてください。" },
+          { status: 502 }
+        );
       }
-      return acc;
-    }, [] as CalendarEvent[]);
-
+      const calListData = await calListRes.json();
+      const allCalIds: string[] = (calListData.items ?? []).map((cal: { id: string }) => cal.id);
+      const results = await Promise.all(allCalIds.map(fetchEvents));
+      // 重複除去
+      const seen = new Set<string>();
+      allCalendarEvents = results.flat().filter((ev) => {
+        if (seen.has(ev.id)) return false;
+        seen.add(ev.id);
+        return true;
+      });
+    }
   } catch {
     return NextResponse.json(
       { error: "Google Calendarへの接続に失敗しました" },
@@ -153,14 +146,22 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // 収入源ごとにキーワードフィルタリング→給与計算
-  const salaries = (sources as IncomeSource[]).map((source) => {
-    // キーワードマッチ（半角英数字は単語境界、日本語は部分一致）
-    const matched = allEvents.filter((ev) =>
-      matchesKeyword(ev.summary, source.keyword)
-    );
-    return calcSalary(source, matched);
-  });
+  // 収入源ごとに取得先カレンダーを切り替えてイベント取得→給与計算
+  const salaries = await Promise.all(
+    (sources as IncomeSource[]).map(async (source) => {
+      let events: CalendarEvent[];
+      if (source.calendar_id) {
+        // calendar_id 指定あり → そのカレンダーのみ取得
+        events = await fetchEvents(source.calendar_id);
+      } else {
+        // calendar_id 未設定 → 全カレンダーから検索（後方互換）
+        events = allCalendarEvents;
+      }
+      // キーワードマッチ（半角英数字は単語境界、日本語は部分一致）
+      const matched = events.filter((ev) => matchesKeyword(ev.summary, source.keyword));
+      return calcSalary(source, matched);
+    })
+  );
 
   // 予定が1件もない場合のメッセージ
   const totalEvents = salaries.reduce((s, sal) => s + sal.events.length, 0);

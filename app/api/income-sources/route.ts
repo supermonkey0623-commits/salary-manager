@@ -35,6 +35,7 @@ export async function POST(req: NextRequest) {
   const insert: IncomeSourceInsert = {
     name: body.name,
     keyword: body.keyword,
+    calendar_id: body.calendar_id?.trim() || null,
     hourly_rate: Number(body.hourly_rate),
     night_rate: Number(body.night_rate ?? 1.25),
     transport_fee: Number(body.transport_fee ?? 500),

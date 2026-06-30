@@ -40,6 +40,7 @@ export type IncomeSource = {
   id: string;
   name: string;              // 収入源名（表示名）
   keyword: string;           // カレンダーキーワード
+  calendar_id: string | null; // Google カレンダーID（設定時はそのカレンダーのみ検索）
   hourly_rate: number;       // 基本時給（円）
   night_rate: number;        // 深夜割増率（例: 1.25）
   transport_fee: number;     // 交通費（1勤務あたり円）

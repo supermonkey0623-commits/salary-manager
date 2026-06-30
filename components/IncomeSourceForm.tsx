@@ -14,6 +14,7 @@ export default function IncomeSourceForm({ initial, onSave, onCancel }: Props) {
   const [form, setForm] = useState({
     name: initial?.name ?? "",
     keyword: initial?.keyword ?? "",
+    calendar_id: initial?.calendar_id ?? "",
     hourly_rate: initial?.hourly_rate?.toString() ?? "",
     night_rate: initial?.night_rate?.toString() ?? "1.25",
     transport_fee: initial?.transport_fee?.toString() ?? "500",
@@ -80,6 +81,18 @@ export default function IncomeSourceForm({ initial, onSave, onCancel }: Props) {
     <form onSubmit={handleSubmit} className="space-y-4">
       {field("収入源名", "name", "text", true, "例：やよい軒")}
       {field("カレンダーキーワード", "keyword", "text", true, "例：やよい")}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          カレンダーID<span className="text-xs text-gray-400 ml-1">（設定するとそのカレンダーのみ検索）</span>
+        </label>
+        <input
+          type="text"
+          value={form.calendar_id}
+          onChange={(e) => setForm((f) => ({ ...f, calendar_id: e.target.value }))}
+          placeholder="例：xxx@group.calendar.google.com"
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
