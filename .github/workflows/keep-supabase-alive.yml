@@ -1,0 +1,39 @@
+name: Keep Supabase Alive
+
+# Supabaseの自動一時停止（無料プランは7日間無活動で停止）を防ぐため
+# /api/health を定期的に叩いてDBクエリを走らせる。
+# Vercel Hobbyプランのcronは実行保証がないため、より確実なGitHub Actionsで実施する。
+
+on:
+  schedule:
+    # 毎日 00:00 UTC（日本時間 09:00）に実行。
+    # 遅延・スキップがあっても7日のPause猶予に対して十分な余裕を持たせる。
+    - cron: "0 0 * * *"
+  # 手動実行も可能にする（動作確認用）
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping health endpoint
+        run: |
+          # DBクエリを走らせるhealthエンドポイントを叩く。
+          # HTTPステータスとレスポンス本文を出力し、200以外なら失敗にする。
+          echo "Pinging Supabase keep-alive endpoint..."
+          HTTP_CODE=$(curl -sS -o /tmp/body.txt -w "%{http_code}" \
+            https://salary-manager-bk9v.vercel.app/api/health)
+          echo "HTTP status: $HTTP_CODE"
+          echo "Response body:"
+          cat /tmp/body.txt
+          echo ""
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::error::Health check failed with status $HTTP_CODE"
+            exit 1
+          fi
+          # レスポンスに "ok" が含まれることを確認（DBクエリ成功の証跡）
+          if ! grep -q '"status":"ok"' /tmp/body.txt; then
+            echo "::error::Health check did not return status ok"
+            exit 1
+          fi
+          echo "Keep-alive ping succeeded."

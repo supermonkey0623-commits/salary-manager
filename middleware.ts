@@ -23,6 +23,6 @@ export default async function middleware(req: NextRequest) {
 // 認証が必要なパス（login・api/auth・静的ファイルは除外）
 export const config = {
   matcher: [
-    "/((?!login|api/auth|_next/static|_next/image|favicon.ico).*)",
+    "/((?!login|api/auth|api/health|_next/static|_next/image|favicon.ico).*)",
   ],
 };
