@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import SessionProvider from "@/components/SessionProvider";
+import SessionMonitor from "@/components/SessionMonitor";
 
 export const metadata: Metadata = {
   title: "給与管理",
@@ -24,7 +25,11 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body className="bg-gray-50 text-gray-900" suppressHydrationWarning>
-        <SessionProvider>{children}</SessionProvider>
+        <SessionProvider>
+          {/* セッションエラー時に自動で再ログインする監視コンポーネント */}
+          <SessionMonitor />
+          {children}
+        </SessionProvider>
       </body>
     </html>
   );

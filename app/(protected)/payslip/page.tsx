@@ -341,8 +341,8 @@ export default function PayslipPage() {
 
       if (!res.ok) {
         if (res.status === 401) {
-          // セッション切れ → ログインページへ
-          window.location.href = "/login?error=SessionExpired";
+          // セッション切れ → ログインページへ（自動で再ログインされる）
+          window.location.href = "/login?error=SessionExpired&callbackUrl=/payslip";
           return;
         }
         setError(data.error ?? "データの取得に失敗しました");

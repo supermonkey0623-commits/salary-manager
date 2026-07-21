@@ -189,6 +189,11 @@ export default function ChartPage() {
       const res = await fetch(`/api/calendar?month=${ym}`);
       const data = await res.json();
       if (!res.ok) {
+        if (res.status === 401) {
+          // セッション切れ → ログインページへ（自動で再ログインされる）
+          window.location.href = "/login?error=SessionExpired&callbackUrl=/chart";
+          return;
+        }
         setError(data.error ?? "データの取得に失敗しました");
         return;
       }

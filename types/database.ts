@@ -25,6 +25,12 @@ export type Database = {
         Update: TaxSettingUpdate;
         Relationships: [];
       };
+      google_tokens: {
+        Row: GoogleToken;
+        Insert: GoogleTokenInsert;
+        Update: GoogleTokenUpdate;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -58,6 +64,21 @@ export type IncomeSourceInsert = Omit<IncomeSource, "id" | "created_at"> & {
 };
 
 export type IncomeSourceUpdate = Partial<IncomeSourceInsert>;
+
+// =============================================
+// Googleリフレッシュトークン（再ログイン時の復元用）
+// =============================================
+export type GoogleToken = {
+  email: string;         // 対象アカウントのメールアドレス
+  refresh_token: string; // Googleリフレッシュトークン
+  updated_at: string;    // 最終更新日時
+};
+
+export type GoogleTokenInsert = Omit<GoogleToken, "updated_at"> & {
+  updated_at?: string;
+};
+
+export type GoogleTokenUpdate = Partial<GoogleTokenInsert>;
 
 // =============================================
 // 月次記録

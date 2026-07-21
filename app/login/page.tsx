@@ -2,34 +2,49 @@
 
 import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { recordAutoLoginAttempt } from "@/lib/autoLoginGuard";
 
 const ERROR_MESSAGES: Record<string, string> = {
   AccessDenied: "このGoogleアカウントはアクセスが許可されていません。",
-  SessionExpired: "セッションが期限切れになりました。再度ログインしてください。",
+  SessionExpired: "セッションの自動更新に失敗しました。再度ログインしてください。",
+  AutoLoginFailed: "自動ログインが繰り返し失敗しました。ボタンから再度お試しください。",
   Default: "ログインに失敗しました。再度お試しください。",
 };
 
 function LoginContent() {
   const searchParams = useSearchParams();
   const errorCode = searchParams.get("error");
-  const errorMessage = errorCode
-    ? ERROR_MESSAGES[errorCode] ?? ERROR_MESSAGES.Default
-    : null;
+  // 自動ログインがループした場合のみ手動ボタンにフォールバックする
+  const [autoFailed, setAutoFailed] = useState(false);
 
-  // エラーがない場合は自動的にGoogle OAuthへリダイレクト
+  // ログイン後の戻り先（オープンリダイレクト防止のため相対パスのみ許可）
+  const rawCallback = searchParams.get("callbackUrl");
+  const callbackUrl =
+    rawCallback && rawCallback.startsWith("/") && !rawCallback.startsWith("//")
+      ? rawCallback
+      : "/payslip";
+
+  // エラーなし・セッション切れ → 自動でGoogle OAuthへ（無操作でログイン完了）
+  // AccessDenied（アカウント違い）だけは自動リトライしない
+  const shouldAutoLogin = !errorCode || errorCode === "SessionExpired";
+
   useEffect(() => {
-    if (!errorCode) {
-      signIn("google", { callbackUrl: "/payslip" });
+    if (!shouldAutoLogin) return;
+    // 5分間に4回以上リダイレクトが繰り返される場合はループとみなして停止
+    if (!recordAutoLoginAttempt("login_page_auto", 3, 5 * 60 * 1000)) {
+      setAutoFailed(true);
+      return;
     }
-  }, [errorCode]);
+    signIn("google", { callbackUrl });
+  }, [shouldAutoLogin, callbackUrl]);
 
   const handleLogin = () => {
-    signIn("google", { callbackUrl: "/payslip" });
+    signIn("google", { callbackUrl });
   };
 
-  // エラーなし → 自動リダイレクト中の表示
-  if (!errorMessage) {
+  // 自動リダイレクト中の表示
+  if (shouldAutoLogin && !autoFailed) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -39,6 +54,10 @@ function LoginContent() {
       </div>
     );
   }
+
+  const errorMessage = autoFailed
+    ? ERROR_MESSAGES.AutoLoginFailed
+    : ERROR_MESSAGES[errorCode ?? ""] ?? ERROR_MESSAGES.Default;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
