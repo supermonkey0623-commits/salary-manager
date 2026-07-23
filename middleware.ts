@@ -27,9 +27,15 @@ export default async function middleware(req: NextRequest) {
   return NextResponse.next();
 }
 
-// 認証が必要なパス（login・api/auth・静的ファイルは除外）
+// 認証が必要なパス
+// 除外対象（公開必須）：
+//   - login / api/auth / api/health
+//   - manifest.webmanifest（PWA定義。非公開だとアイコンが読めず頭文字表示になる）
+//   - icon / apple-icon（動的生成のfavicon・iOSアイコン）
+//   - _next/static / _next/image / favicon.ico
+//   - 拡張子付きの静的ファイル全般（.png .ico .svg など。末尾の \..* で判定）
 export const config = {
   matcher: [
-    "/((?!login|api/auth|api/health|_next/static|_next/image|favicon.ico).*)",
+    "/((?!login|api/auth|api/health|manifest.webmanifest|icon|apple-icon|_next/static|_next/image|favicon.ico|.*\\..*).*)",
   ],
 };
