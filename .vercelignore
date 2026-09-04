@@ -1,0 +1,25 @@
+# Vercelへのアップロード対象から除外するファイル
+# ビルドはVercel側で実行されるため、ローカルの成果物・キャッシュは送らない
+
+# 依存関係（Vercel側でインストールされる）
+node_modules/
+
+# ビルド成果物・開発サーバーのキャッシュ
+# 特に .next/dev は Turbopack のキャッシュで数百MBに肥大化しアップロード上限を超える
+.next/
+out/
+dist/
+tsconfig.tsbuildinfo
+
+# 各種キャッシュ・一時ファイル
+.cache/
+.tmp.driveupload/
+
+# バージョン管理・エディタ設定
+.git/
+.vscode/
+.idea/
+
+# OS生成ファイル
+.DS_Store
+Thumbs.db
