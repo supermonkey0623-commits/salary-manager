@@ -16,6 +16,16 @@ const MONTHS = Array.from({ length: 12 }, (_, i) =>
   String(i + 1).padStart(2, "0")
 );
 
+// 控除額合計（所得税＋その他控除）
+function deductionOf(r: MonthlyRecord): number {
+  return r.income_tax + r.other_deduction;
+}
+
+// 口座入金額（支給額合計 − 控除額合計）
+function takeHomeOf(r: MonthlyRecord): number {
+  return r.gross_amount - deductionOf(r);
+}
+
 // =============================================
 // 月次データテーブル（収入源1件）
 // =============================================
@@ -38,7 +48,7 @@ function MonthlyTable({
 }) {
   const recordMap = new Map(records.map((r) => [r.year_month, r]));
   const annualGross = records.reduce((s, r) => s + r.gross_amount, 0);
-  const annualTakeHome = records.reduce((s, r) => s + r.gross_amount - r.income_tax, 0);
+  const annualTakeHome = records.reduce((s, r) => s + takeHomeOf(r), 0);
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -46,14 +56,14 @@ function MonthlyTable({
         <h3 className="font-semibold text-gray-800 text-sm">{source.name}</h3>
         <div className="text-xs text-gray-500">
           合計 <span className="font-semibold text-blue-600">{yen(annualGross)}</span>
-          　手取 <span className="font-semibold text-gray-700">{yen(annualTakeHome)}</span>
+          　入金 <span className="font-semibold text-gray-700">{yen(annualTakeHome)}</span>
         </div>
       </div>
 
       <div className="grid grid-cols-4 px-4 py-1.5 text-xs text-gray-400 border-b border-gray-50">
         <span>月</span>
         <span className="text-right">支給額</span>
-        <span className="text-right">手取り</span>
+        <span className="text-right">口座入金</span>
         <span className="text-right">操作</span>
       </div>
 
@@ -61,7 +71,7 @@ function MonthlyTable({
         {MONTHS.map((mm) => {
           const ym = `${year}-${mm}`;
           const rec = recordMap.get(ym) ?? null;
-          const takeHome = rec ? rec.gross_amount - rec.income_tax : 0;
+          const takeHome = rec ? takeHomeOf(rec) : 0;
 
           return (
             <div key={ym} className="grid grid-cols-4 items-center px-4 py-2.5">
@@ -91,96 +101,158 @@ function MonthlyTable({
 }
 
 // =============================================
-// 合計タブ（全収入源の月次合計 ＋ その他収入）
+// その他収入タブ（タイミー等の臨時収入を月別に管理）
 // =============================================
-function TotalTable({
+function ExtraTable({
   year,
-  sources,
-  records,
   extraIncomes,
   onEditExtra,
 }: {
   year: number;
-  sources: IncomeSource[];
-  records: MonthlyRecord[];
   extraIncomes: ExtraIncome[];
   onEditExtra: (yearMonth: string, record: ExtraIncome | null) => void;
 }) {
-  // 年月ごとのその他収入
   const extraMap = new Map(extraIncomes.map((e) => [e.year_month, e]));
   const annualExtra = extraIncomes.reduce((s, e) => s + e.amount, 0);
-  // 合計・手取りともにその他収入を加算（その他収入は非課税として全額反映）
-  const annualGross = records.reduce((s, r) => s + r.gross_amount, 0) + annualExtra;
-  const annualTakeHome =
-    records.reduce((s, r) => s + r.gross_amount - r.income_tax, 0) + annualExtra;
-
-  // 列数 = 収入源 + その他 + 合計
-  const gridCols = `3.5rem repeat(${sources.length + 2}, 1fr)`;
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
       <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
-        <h3 className="font-semibold text-gray-800 text-sm">全収入源 合計</h3>
+        <h3 className="font-semibold text-gray-800 text-sm">その他収入</h3>
         <div className="text-xs text-gray-500">
-          合計 <span className="font-semibold text-blue-600">{yen(annualGross)}</span>
-          　手取 <span className="font-semibold text-gray-700">{yen(annualTakeHome)}</span>
+          年間合計{" "}
+          <span className="font-semibold text-emerald-600">{yen(annualExtra)}</span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-[3rem_1fr_1fr_4rem] px-4 py-1.5 text-xs text-gray-400 border-b border-gray-50">
+        <span>月</span>
+        <span className="text-right">金額</span>
+        <span className="text-right">メモ</span>
+        <span className="text-right">操作</span>
+      </div>
+
+      <div className="divide-y divide-gray-50">
+        {MONTHS.map((mm) => {
+          const ym = `${year}-${mm}`;
+          const extra = extraMap.get(ym) ?? null;
+          const amount = extra?.amount ?? 0;
+
+          return (
+            <div
+              key={ym}
+              className="grid grid-cols-[3rem_1fr_1fr_4rem] items-center px-4 py-2.5"
+            >
+              <span className="text-sm text-gray-700 font-medium">{monthLabel(ym)}</span>
+              <span
+                className={`text-sm text-right font-medium ${
+                  amount > 0 ? "text-emerald-600" : "text-gray-200"
+                }`}
+              >
+                {amount > 0 ? yen(amount) : "—"}
+              </span>
+              <span className="text-xs text-right text-gray-500 truncate pl-2">
+                {extra?.memo ? extra.memo : <span className="text-gray-200">—</span>}
+              </span>
+              <div className="text-right">
+                <button
+                  onClick={() => onEditExtra(ym, extra)}
+                  className={`btn3d btn3d-sm text-xs px-3 py-1.5 ${
+                    amount > 0 ? "btn-soft-gray" : "btn-soft-emerald"
+                  }`}
+                >
+                  {amount > 0 ? "編集" : "入力"}
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// =============================================
+// 合計タブ（全収入源＋その他収入の月次合計）
+// 収入源ごとの内訳は出さず、合計・控除・口座入金額のみを表示する
+// =============================================
+function TotalTable({
+  year,
+  records,
+  extraIncomes,
+}: {
+  year: number;
+  records: MonthlyRecord[];
+  extraIncomes: ExtraIncome[];
+}) {
+  const extraMap = new Map(extraIncomes.map((e) => [e.year_month, e]));
+  const annualExtra = extraIncomes.reduce((s, e) => s + e.amount, 0);
+  // その他収入は控除がないため、全額がそのまま入金額に反映される
+  const annualGross = records.reduce((s, r) => s + r.gross_amount, 0) + annualExtra;
+  const annualDeduction = records.reduce((s, r) => s + deductionOf(r), 0);
+  const annualTakeHome = annualGross - annualDeduction;
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100">
+        <div className="flex justify-between items-center">
+          <h3 className="font-semibold text-gray-800 text-sm">全収入源 合計</h3>
+          <span className="text-base font-bold text-blue-600">{yen(annualGross)}</span>
+        </div>
+        <div className="flex justify-end gap-3 text-xs text-gray-500 mt-0.5">
+          <span>
+            控除 <span className="font-semibold text-red-500">−{yen(annualDeduction)}</span>
+          </span>
+          <span>
+            口座入金 <span className="font-semibold text-gray-700">{yen(annualTakeHome)}</span>
+          </span>
         </div>
       </div>
 
       {/* 列ヘッダー */}
-      <div
-        className="px-4 py-1.5 text-xs text-gray-400 border-b border-gray-50"
-        style={{ display: "grid", gridTemplateColumns: gridCols }}
-      >
+      <div className="grid grid-cols-[3rem_1fr_1fr_1fr] px-4 py-1.5 text-xs text-gray-400 border-b border-gray-50">
         <span>月</span>
-        {sources.map((s) => (
-          <span key={s.id} className="text-right truncate">{s.name}</span>
-        ))}
-        <span className="text-right truncate">その他</span>
-        <span className="text-right font-medium text-gray-500">合計</span>
+        <span className="text-right">合計</span>
+        <span className="text-right">控除</span>
+        <span className="text-right">口座入金</span>
       </div>
 
       <div className="divide-y divide-gray-50">
         {MONTHS.map((mm) => {
           const ym = `${year}-${mm}`;
           const monthRecords = records.filter((r) => r.year_month === ym);
-          const extra = extraMap.get(ym) ?? null;
-          const extraAmount = extra?.amount ?? 0;
-          const totalGross = monthRecords.reduce((s, r) => s + r.gross_amount, 0) + extraAmount;
+          const extraAmount = extraMap.get(ym)?.amount ?? 0;
+          const gross =
+            monthRecords.reduce((s, r) => s + r.gross_amount, 0) + extraAmount;
+          const deduction = monthRecords.reduce((s, r) => s + deductionOf(r), 0);
           const hasData = monthRecords.length > 0 || extraAmount > 0;
-
-          // 収入源ごとの支給額
-          const bySource = new Map(monthRecords.map((r) => [r.income_source_id, r.gross_amount]));
 
           return (
             <div
               key={ym}
-              className="items-center px-4 py-2.5"
-              style={{ display: "grid", gridTemplateColumns: gridCols }}
+              className="grid grid-cols-[3rem_1fr_1fr_1fr] items-center px-4 py-2.5"
             >
               <span className="text-sm text-gray-700 font-medium">{monthLabel(ym)}</span>
-              {sources.map((s) => {
-                const val = bySource.get(s.id);
-                return (
-                  <span key={s.id} className="text-xs text-right text-gray-600">
-                    {val != null ? yen(val) : <span className="text-gray-200">—</span>}
-                  </span>
-                );
-              })}
-              {/* その他収入：タップで入力・編集 */}
-              <div className="text-right">
-                <button
-                  onClick={() => onEditExtra(ym, extra)}
-                  className={`btn3d btn3d-sm text-xs px-2 py-1 ${
-                    extraAmount > 0 ? "btn-soft-emerald" : "btn-soft-gray"
-                  }`}
-                  title={extra?.memo ?? "その他収入を入力"}
-                >
-                  {extraAmount > 0 ? yen(extraAmount) : "＋"}
-                </button>
-              </div>
-              <span className={`text-sm text-right font-semibold ${hasData ? "text-blue-600" : "text-gray-200"}`}>
-                {hasData ? yen(totalGross) : "—"}
+              <span
+                className={`text-sm text-right font-semibold ${
+                  hasData ? "text-blue-600" : "text-gray-200"
+                }`}
+              >
+                {hasData ? yen(gross) : "—"}
+              </span>
+              <span
+                className={`text-sm text-right ${
+                  deduction > 0 ? "text-red-500" : "text-gray-200"
+                }`}
+              >
+                {deduction > 0 ? `−${yen(deduction)}` : "—"}
+              </span>
+              <span
+                className={`text-sm text-right font-semibold ${
+                  hasData ? "text-gray-800" : "text-gray-200"
+                }`}
+              >
+                {hasData ? yen(gross - deduction) : "—"}
               </span>
             </div>
           );
@@ -319,6 +391,7 @@ type EditFormState = {
   transport_allowance: string;
   taxable_amount: string;
   income_tax: string;
+  other_deduction: string;
   other_pay: string;
 };
 
@@ -336,13 +409,16 @@ function EditSheet({
     transport_allowance: target.record?.transport_allowance.toString() ?? "",
     taxable_amount: target.record?.taxable_amount.toString() ?? "",
     income_tax: target.record?.income_tax.toString() ?? "",
+    other_deduction: target.record?.other_deduction.toString() ?? "",
     other_pay: target.record?.other_pay.toString() ?? "",
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   const n = (v: string) => Number(v) || 0;
-  const takeHome = n(form.gross_amount) - n(form.income_tax);
+  // 控除額合計＝所得税＋その他控除、口座入金額＝支給額合計−控除額合計
+  const deductionTotal = n(form.income_tax) + n(form.other_deduction);
+  const takeHome = n(form.gross_amount) - deductionTotal;
 
   const setField = (key: keyof EditFormState, value: string) =>
     setForm((f) => ({ ...f, [key]: value }));
@@ -438,12 +514,19 @@ function EditSheet({
           <NumField label="通勤手当" field="transport_allowance" />
           <NumField label="課税対象額計" field="taxable_amount" />
           <NumField label="所得税（源泉徴収）" field="income_tax" />
+          <NumField label="その他控除（雇用保険等）" field="other_deduction" />
           <NumField label="その他支給" field="other_pay" />
         </div>
 
-        <div className="bg-blue-50 rounded-xl px-4 py-3 flex justify-between items-center">
-          <span className="text-sm font-medium text-blue-700">手取り（概算）</span>
-          <span className="text-xl font-bold text-blue-700">{yen(takeHome)}</span>
+        <div className="bg-blue-50 rounded-xl px-4 py-3 space-y-1.5">
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-gray-500">控除額合計</span>
+            <span className="font-semibold text-red-500">−{yen(deductionTotal)}</span>
+          </div>
+          <div className="flex justify-between items-center border-t border-blue-100 pt-1.5">
+            <span className="text-sm font-medium text-blue-700">口座入金額</span>
+            <span className="text-xl font-bold text-blue-700">{yen(takeHome)}</span>
+          </div>
         </div>
       </div>
 
@@ -528,8 +611,10 @@ export default function AnnualPage() {
   const recordsBySource = (sourceId: string) =>
     records.filter((r) => r.income_source_id === sourceId);
 
-  // 合計タブのインデックス = sources.length
-  const totalTabIndex = sources.length;
+  // タブ並び：収入源... → その他 → 合計
+  const extraTabIndex = sources.length;
+  const totalTabIndex = sources.length + 1;
+  const isExtra = activeTab === extraTabIndex;
   const isTotal = activeTab === totalTabIndex;
 
   return (
@@ -617,6 +702,15 @@ export default function AnnualPage() {
                     {s.name}
                   </button>
                 ))}
+                {/* その他タブ */}
+                <button
+                  onClick={() => setActiveTab(extraTabIndex)}
+                  className={`btn3d btn3d-sm shrink-0 px-4 py-1.5 text-sm ${
+                    isExtra ? "btn-success" : "btn-soft-gray"
+                  }`}
+                >
+                  その他
+                </button>
                 {/* 合計タブ */}
                 <button
                   onClick={() => setActiveTab(totalTabIndex)}
@@ -631,8 +725,12 @@ export default function AnnualPage() {
               {isTotal ? (
                 <TotalTable
                   year={year}
-                  sources={sources}
                   records={records}
+                  extraIncomes={extraIncomes}
+                />
+              ) : isExtra ? (
+                <ExtraTable
+                  year={year}
                   extraIncomes={extraIncomes}
                   onEditExtra={(yearMonth, record) => setExtraTarget({ yearMonth, record })}
                 />

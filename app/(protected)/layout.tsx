@@ -8,7 +8,7 @@ export default function ProtectedLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen pb-20 overflow-x-hidden">
+    <div className="min-h-screen pb-32 overflow-x-hidden">
       <main className="max-w-lg mx-auto">
         {/* タブ移動時に左右へスライドさせる */}
         <PageTransition>{children}</PageTransition>

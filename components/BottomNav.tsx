@@ -21,7 +21,7 @@ export default function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 pb-[env(safe-area-inset-bottom)]">
+    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 pb-[calc(env(safe-area-inset-bottom)+20px)]">
       <div className="flex max-w-lg mx-auto">
         {NAV_ITEMS.map(({ href, label, Icon }) => {
           const isActive = pathname.startsWith(href);
@@ -30,7 +30,7 @@ export default function BottomNav() {
               key={href}
               href={href}
               aria-current={isActive ? "page" : undefined}
-              className="flex-1 flex flex-col items-center justify-center pt-1.5 pb-1 gap-0.5 btn-press"
+              className="flex-1 flex flex-col items-center justify-center pt-2 pb-0.5 gap-0.5 btn-press"
             >
               {/* アイコン：選択中は淡い青の座布団を敷く */}
               <span

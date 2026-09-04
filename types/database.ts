@@ -114,6 +114,7 @@ export type MonthlyRecord = {
   transport_allowance: number;     // 通勤手当
   taxable_amount: number;          // 課税対象額計
   income_tax: number;              // 所得税（源泉徴収）
+  other_deduction: number;         // その他控除（雇用保険・社会保険料など）
   other_pay: number;               // その他支給
   created_at: string;
   updated_at: string;

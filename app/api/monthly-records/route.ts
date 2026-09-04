@@ -51,6 +51,7 @@ export async function POST(req: NextRequest) {
         transport_allowance: Number(body.transport_allowance) || 0,
         taxable_amount: Number(body.taxable_amount) || 0,
         income_tax: Number(body.income_tax) || 0,
+        other_deduction: Number(body.other_deduction) || 0,
         other_pay: Number(body.other_pay) || 0,
       },
       { onConflict: "income_source_id,year_month" }
