@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import type { IncomeSource, MonthlyRecord } from "@/types/database";
+import type { IncomeSource, MonthlyRecord, ExtraIncome } from "@/types/database";
 
 function yen(n: number): string {
   return `¥${Math.floor(n).toLocaleString()}`;
@@ -45,8 +45,8 @@ function MonthlyTable({
       <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
         <h3 className="font-semibold text-gray-800 text-sm">{source.name}</h3>
         <div className="text-xs text-gray-500">
-          合計 <span className="font-semibold text-gray-800">{yen(annualGross)}</span>
-          　手取 <span className="font-semibold text-blue-600">{yen(annualTakeHome)}</span>
+          合計 <span className="font-semibold text-blue-600">{yen(annualGross)}</span>
+          　手取 <span className="font-semibold text-gray-700">{yen(annualTakeHome)}</span>
         </div>
       </div>
 
@@ -93,39 +93,52 @@ function MonthlyTable({
 }
 
 // =============================================
-// 合計タブ（全収入源の月次合計）
+// 合計タブ（全収入源の月次合計 ＋ その他収入）
 // =============================================
 function TotalTable({
   year,
   sources,
   records,
+  extraIncomes,
+  onEditExtra,
 }: {
   year: number;
   sources: IncomeSource[];
   records: MonthlyRecord[];
+  extraIncomes: ExtraIncome[];
+  onEditExtra: (yearMonth: string, record: ExtraIncome | null) => void;
 }) {
-  const annualGross = records.reduce((s, r) => s + r.gross_amount, 0);
-  const annualTakeHome = records.reduce((s, r) => s + r.gross_amount - r.income_tax, 0);
+  // 年月ごとのその他収入
+  const extraMap = new Map(extraIncomes.map((e) => [e.year_month, e]));
+  const annualExtra = extraIncomes.reduce((s, e) => s + e.amount, 0);
+  // 合計・手取りともにその他収入を加算（その他収入は非課税として全額反映）
+  const annualGross = records.reduce((s, r) => s + r.gross_amount, 0) + annualExtra;
+  const annualTakeHome =
+    records.reduce((s, r) => s + r.gross_amount - r.income_tax, 0) + annualExtra;
+
+  // 列数 = 収入源 + その他 + 合計
+  const gridCols = `3.5rem repeat(${sources.length + 2}, 1fr)`;
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
       <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
         <h3 className="font-semibold text-gray-800 text-sm">全収入源 合計</h3>
         <div className="text-xs text-gray-500">
-          合計 <span className="font-semibold text-gray-800">{yen(annualGross)}</span>
-          　手取 <span className="font-semibold text-blue-600">{yen(annualTakeHome)}</span>
+          合計 <span className="font-semibold text-blue-600">{yen(annualGross)}</span>
+          　手取 <span className="font-semibold text-gray-700">{yen(annualTakeHome)}</span>
         </div>
       </div>
 
       {/* 列ヘッダー */}
       <div
         className="px-4 py-1.5 text-xs text-gray-400 border-b border-gray-50"
-        style={{ display: "grid", gridTemplateColumns: `4rem repeat(${sources.length + 1}, 1fr)` }}
+        style={{ display: "grid", gridTemplateColumns: gridCols }}
       >
         <span>月</span>
         {sources.map((s) => (
           <span key={s.id} className="text-right truncate">{s.name}</span>
         ))}
+        <span className="text-right truncate">その他</span>
         <span className="text-right font-medium text-gray-500">合計</span>
       </div>
 
@@ -133,8 +146,10 @@ function TotalTable({
         {MONTHS.map((mm) => {
           const ym = `${year}-${mm}`;
           const monthRecords = records.filter((r) => r.year_month === ym);
-          const totalGross = monthRecords.reduce((s, r) => s + r.gross_amount, 0);
-          const hasData = monthRecords.length > 0;
+          const extra = extraMap.get(ym) ?? null;
+          const extraAmount = extra?.amount ?? 0;
+          const totalGross = monthRecords.reduce((s, r) => s + r.gross_amount, 0) + extraAmount;
+          const hasData = monthRecords.length > 0 || extraAmount > 0;
 
           // 収入源ごとの支給額
           const bySource = new Map(monthRecords.map((r) => [r.income_source_id, r.gross_amount]));
@@ -143,7 +158,7 @@ function TotalTable({
             <div
               key={ym}
               className="items-center px-4 py-2.5"
-              style={{ display: "grid", gridTemplateColumns: `4rem repeat(${sources.length + 1}, 1fr)` }}
+              style={{ display: "grid", gridTemplateColumns: gridCols }}
             >
               <span className="text-sm text-gray-700 font-medium">{monthLabel(ym)}</span>
               {sources.map((s) => {
@@ -154,12 +169,147 @@ function TotalTable({
                   </span>
                 );
               })}
+              {/* その他収入：タップで入力・編集 */}
+              <div className="text-right">
+                <button
+                  onClick={() => onEditExtra(ym, extra)}
+                  className={`text-xs font-medium rounded-md px-1.5 py-0.5 transition-colors ${
+                    extraAmount > 0
+                      ? "text-emerald-600 hover:bg-emerald-50"
+                      : "text-gray-300 hover:bg-gray-100 hover:text-gray-400"
+                  }`}
+                  title={extra?.memo ?? "その他収入を入力"}
+                >
+                  {extraAmount > 0 ? yen(extraAmount) : "＋"}
+                </button>
+              </div>
               <span className={`text-sm text-right font-semibold ${hasData ? "text-blue-600" : "text-gray-200"}`}>
                 {hasData ? yen(totalGross) : "—"}
               </span>
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+// =============================================
+// その他収入の入力ボトムシート
+// =============================================
+function ExtraIncomeSheet({
+  yearMonth,
+  record,
+  onClose,
+  onSaved,
+}: {
+  yearMonth: string;
+  record: ExtraIncome | null;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [amount, setAmount] = useState(record?.amount ? record.amount.toString() : "");
+  const [memo, setMemo] = useState(record?.memo ?? "");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSave = async () => {
+    setSaving(true);
+    setError("");
+    try {
+      const res = await fetch("/api/extra-incomes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          year_month: yearMonth,
+          amount: Number(amount) || 0,
+          memo,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error ?? "保存に失敗しました");
+        return;
+      }
+      onSaved();
+      onClose();
+    } catch {
+      setError("通信エラーが発生しました");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] bg-black/30 flex items-end sm:items-center sm:justify-center" onClick={onClose}>
+      <div
+        className="w-full sm:max-w-sm bg-white rounded-t-2xl sm:rounded-2xl p-5 pb-8"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-gray-800">
+            {monthLabel(yearMonth)}のその他収入
+          </h3>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100"
+            aria-label="閉じる"
+          >
+            ✕
+          </button>
+        </div>
+
+        <p className="text-xs text-gray-400 mb-4">
+          タイミー等の臨時収入を入力します。合計に加算されます。
+        </p>
+
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">金額（円）</label>
+            <input
+              type="number"
+              inputMode="numeric"
+              min="0"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="例：15000"
+              autoFocus
+              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">メモ（任意）</label>
+            <input
+              type="text"
+              value={memo}
+              onChange={(e) => setMemo(e.target.value)}
+              placeholder="例：タイミー"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+          </div>
+        </div>
+
+        {error && (
+          <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mt-3">
+            {error}
+          </p>
+        )}
+
+        <div className="flex gap-3 mt-5">
+          <button
+            onClick={onClose}
+            className="flex-1 py-3 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50"
+          >
+            キャンセル
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex-1 py-3 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 disabled:opacity-50"
+          >
+            {saving ? "保存中..." : "保存"}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -335,33 +485,39 @@ export default function AnnualPage() {
   const [year, setYear] = useState(currentYear);
   const [sources, setSources] = useState<IncomeSource[]>([]);
   const [records, setRecords] = useState<MonthlyRecord[]>([]);
+  const [extraIncomes, setExtraIncomes] = useState<ExtraIncome[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   // sources.length が合計タブのインデックス
   const [activeTab, setActiveTab] = useState(0);
   const [editTarget, setEditTarget] = useState<EditTarget | null>(null);
+  // その他収入の編集対象（年月）
+  const [extraTarget, setExtraTarget] = useState<{ yearMonth: string; record: ExtraIncome | null } | null>(null);
 
   const fetchAll = useCallback(async (y: number) => {
     setLoading(true);
     setError("");
     try {
-      const [srcRes, recRes] = await Promise.all([
+      const [srcRes, recRes, extraRes] = await Promise.all([
         fetch("/api/income-sources"),
         fetch(`/api/monthly-records?year=${y}`),
+        fetch(`/api/extra-incomes?year=${y}`),
       ]);
 
-      if (!srcRes.ok || !recRes.ok) {
+      if (!srcRes.ok || !recRes.ok || !extraRes.ok) {
         setError("データの取得に失敗しました");
         return;
       }
 
-      const [srcData, recData] = await Promise.all([
+      const [srcData, recData, extraData] = await Promise.all([
         srcRes.json(),
         recRes.json(),
+        extraRes.json(),
       ]);
 
       setSources(srcData.filter((s: IncomeSource) => s.is_active));
       setRecords(recData);
+      setExtraIncomes(extraData);
     } catch {
       setError("通信エラーが発生しました");
     } finally {
@@ -481,7 +637,13 @@ export default function AnnualPage() {
               </div>
 
               {isTotal ? (
-                <TotalTable year={year} sources={sources} records={records} />
+                <TotalTable
+                  year={year}
+                  sources={sources}
+                  records={records}
+                  extraIncomes={extraIncomes}
+                  onEditExtra={(yearMonth, record) => setExtraTarget({ yearMonth, record })}
+                />
               ) : (
                 sources[activeTab] && (
                   <MonthlyTable
@@ -502,6 +664,16 @@ export default function AnnualPage() {
         <EditSheet
           target={editTarget}
           onClose={() => setEditTarget(null)}
+          onSaved={() => fetchAll(year)}
+        />
+      )}
+
+      {/* その他収入シート */}
+      {extraTarget && (
+        <ExtraIncomeSheet
+          yearMonth={extraTarget.yearMonth}
+          record={extraTarget.record}
+          onClose={() => setExtraTarget(null)}
           onSaved={() => fetchAll(year)}
         />
       )}

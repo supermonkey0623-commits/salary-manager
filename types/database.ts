@@ -31,6 +31,12 @@ export type Database = {
         Update: GoogleTokenUpdate;
         Relationships: [];
       };
+      extra_incomes: {
+        Row: ExtraIncome;
+        Insert: ExtraIncomeInsert;
+        Update: ExtraIncomeUpdate;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -79,6 +85,22 @@ export type GoogleTokenInsert = Omit<GoogleToken, "updated_at"> & {
 };
 
 export type GoogleTokenUpdate = Partial<GoogleTokenInsert>;
+
+// =============================================
+// その他収入（タイミー等の臨時収入・年月ごと）
+// =============================================
+export type ExtraIncome = {
+  year_month: string;    // 対象年月（例: "2026-03"）
+  amount: number;        // その他収入の金額（円）
+  memo: string | null;   // メモ（任意）
+  updated_at: string;    // 最終更新日時
+};
+
+export type ExtraIncomeInsert = Omit<ExtraIncome, "updated_at"> & {
+  updated_at?: string;
+};
+
+export type ExtraIncomeUpdate = Partial<ExtraIncomeInsert>;
 
 // =============================================
 // 月次記録
