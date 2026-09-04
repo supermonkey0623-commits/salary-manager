@@ -60,7 +60,8 @@ export default function SettingsPage() {
         <div className="flex items-center gap-3 mb-6">
           <button
             onClick={() => { setMode("list"); setEditing(null); }}
-            className="text-gray-500 hover:text-gray-700 text-lg"
+            className="btn-press w-9 h-9 flex items-center justify-center rounded-xl text-gray-500 hover:bg-gray-100 text-lg"
+            aria-label="戻る"
           >
             ←
           </button>
@@ -90,7 +91,7 @@ export default function SettingsPage() {
           </h2>
           <button
             onClick={() => setMode("add")}
-            className="text-sm text-blue-600 font-medium hover:text-blue-700"
+            className="btn3d btn3d-sm btn-soft-blue px-3 py-1.5 text-sm"
           >
             ＋ 追加
           </button>
@@ -103,7 +104,7 @@ export default function SettingsPage() {
             <p className="text-sm text-gray-500 mb-3">収入源が登録されていません</p>
             <button
               onClick={() => setMode("add")}
-              className="text-sm text-blue-600 font-medium"
+              className="btn3d btn-primary px-5 py-2.5 text-sm"
             >
               最初の収入源を追加する
             </button>
@@ -146,16 +147,16 @@ export default function SettingsPage() {
                     </p>
                   </div>
                   {src.is_active && (
-                    <div className="flex gap-3 ml-3 shrink-0">
+                    <div className="flex gap-2 ml-3 shrink-0">
                       <button
                         onClick={() => { setEditing(src); setMode("edit"); }}
-                        className="text-sm text-blue-600 hover:text-blue-700"
+                        className="btn3d btn3d-sm btn-soft-blue px-3 py-1.5 text-xs"
                       >
                         編集
                       </button>
                       <button
                         onClick={() => setDeleteTarget(src)}
-                        className="text-sm text-red-500 hover:text-red-600"
+                        className="btn3d btn3d-sm btn-soft-red px-3 py-1.5 text-xs"
                       >
                         削除
                       </button>
@@ -172,7 +173,7 @@ export default function SettingsPage() {
       <div className="mt-8 pt-6 border-t border-gray-200">
         <button
           onClick={() => signOut({ callbackUrl: "/login" })}
-          className="w-full py-2.5 text-sm text-red-500 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
+          className="btn3d btn-soft-red w-full py-3 text-sm"
         >
           ログアウト
         </button>
@@ -180,8 +181,8 @@ export default function SettingsPage() {
 
       {/* ==================== 削除確認モーダル ==================== */}
       {deleteTarget && (
-        <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm p-6">
+        <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50 p-4 overlay-fade-in">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6 sheet-from-bottom">
             <h3 className="font-bold text-gray-900 mb-2">収入源を削除しますか？</h3>
             <p className="text-sm text-gray-500 mb-1">
               「{deleteTarget.name}」を無効化します。
@@ -192,13 +193,13 @@ export default function SettingsPage() {
             <div className="flex gap-3">
               <button
                 onClick={() => setDeleteTarget(null)}
-                className="flex-1 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700"
+                className="btn3d btn-neutral flex-1 py-3 text-sm"
               >
                 キャンセル
               </button>
               <button
                 onClick={handleDelete}
-                className="flex-1 py-2.5 bg-red-500 text-white rounded-lg text-sm font-medium"
+                className="btn3d btn-danger flex-1 py-3 text-sm"
               >
                 削除する
               </button>

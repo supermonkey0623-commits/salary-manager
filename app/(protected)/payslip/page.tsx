@@ -181,7 +181,7 @@ function PayRow({
             {hasDetail && (
               <button
                 onClick={() => setOpen((v) => !v)}
-                className="text-xs text-blue-500 hover:text-blue-700 px-1.5 py-0.5 rounded border border-blue-200 hover:border-blue-400 transition-colors"
+                className="btn3d btn3d-sm btn-soft-blue text-xs px-2.5 py-1"
               >
                 {open ? "▲ 閉じる" : "▼ 詳細"}
               </button>
@@ -383,7 +383,8 @@ export default function PayslipPage() {
         <div className="flex items-center justify-between">
           <button
             onClick={() => moveMonth(-1)}
-            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+            className="btn-press w-10 h-10 flex items-center justify-center text-xl text-gray-500 hover:bg-gray-100 rounded-xl"
+            aria-label="前の月"
           >
             ‹
           </button>
@@ -392,7 +393,8 @@ export default function PayslipPage() {
           </h1>
           <button
             onClick={() => moveMonth(1)}
-            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+            className="btn-press w-10 h-10 flex items-center justify-center text-xl text-gray-500 hover:bg-gray-100 rounded-xl"
+            aria-label="次の月"
           >
             ›
           </button>
@@ -406,10 +408,8 @@ export default function PayslipPage() {
             <button
               key={s.source.id}
               onClick={() => setActiveTab(i)}
-              className={`shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                activeTab === i
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              className={`btn3d btn3d-sm shrink-0 px-4 py-1.5 text-sm ${
+                activeTab === i ? "btn-primary" : "btn-soft-gray"
               }`}
             >
               {s.source.name}

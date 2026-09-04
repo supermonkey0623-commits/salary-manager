@@ -1,3 +1,247 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* =============================================
+   タップ時の挙動を全体で統一する
+   ============================================= */
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* =============================================
+   立体ボタン（Duolingo風）
+   下辺に一段濃い影を敷き、押すとその分だけ沈み込む
+   --edge が影（ボタンの側面）の色
+   ============================================= */
+.btn3d {
+  --edge: rgba(0, 0, 0, 0.18);
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 1rem;
+  cursor: pointer;
+  box-shadow: 0 4px 0 var(--edge);
+  transform: translateY(0);
+  transition: transform 80ms ease, box-shadow 80ms ease, background-color 150ms ease;
+}
+
+.btn3d:active:not(:disabled) {
+  transform: translateY(4px);
+  box-shadow: 0 0 0 var(--edge);
+}
+
+.btn3d:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 小型版（表の中のボタン・タブなど） */
+.btn3d-sm {
+  border-radius: 0.75rem;
+  box-shadow: 0 3px 0 var(--edge);
+}
+
+.btn3d-sm:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 var(--edge);
+}
+
+/* ---- 配色バリアント ---- */
+.btn-primary {
+  --edge: #1d4ed8;
+  background: #3b82f6;
+  color: #fff;
+}
+.btn-primary:hover:not(:disabled) {
+  background: #2b74f5;
+}
+
+.btn-success {
+  --edge: #047857;
+  background: #10b981;
+  color: #fff;
+}
+.btn-success:hover:not(:disabled) {
+  background: #0ea975;
+}
+
+.btn-neutral {
+  --edge: #d1d5db;
+  background: #fff;
+  color: #4b5563;
+  border: 2px solid #e5e7eb;
+}
+.btn-neutral:hover:not(:disabled) {
+  background: #f9fafb;
+}
+
+.btn-soft-blue {
+  --edge: #bfdbfe;
+  background: #eff6ff;
+  color: #2563eb;
+}
+.btn-soft-blue:hover:not(:disabled) {
+  background: #dbeafe;
+}
+
+.btn-soft-gray {
+  --edge: #e5e7eb;
+  background: #f3f4f6;
+  color: #4b5563;
+}
+.btn-soft-gray:hover:not(:disabled) {
+  background: #e9ebee;
+}
+
+.btn-soft-emerald {
+  --edge: #a7f3d0;
+  background: #ecfdf5;
+  color: #059669;
+}
+.btn-soft-emerald:hover:not(:disabled) {
+  background: #d1fae5;
+}
+
+.btn-soft-orange {
+  --edge: #fed7aa;
+  background: #fff7ed;
+  color: #c2410c;
+}
+.btn-soft-orange:hover:not(:disabled) {
+  background: #ffedd5;
+}
+
+.btn-soft-purple {
+  --edge: #e9d5ff;
+  background: #faf5ff;
+  color: #7e22ce;
+}
+.btn-soft-purple:hover:not(:disabled) {
+  background: #f3e8ff;
+}
+
+.btn-danger {
+  --edge: #b91c1c;
+  background: #ef4444;
+  color: #fff;
+}
+.btn-danger:hover:not(:disabled) {
+  background: #e33b3b;
+}
+
+.btn-soft-red {
+  --edge: #fecaca;
+  background: #fef2f2;
+  color: #dc2626;
+}
+.btn-soft-red:hover:not(:disabled) {
+  background: #fee2e2;
+}
+
+/* 影を持たない軽量な押し込み（矢印・アイコンボタン用） */
+.btn-press {
+  transition: transform 80ms ease, background-color 150ms ease;
+}
+.btn-press:active:not(:disabled) {
+  transform: scale(0.88);
+}
+
+/* =============================================
+   画面遷移（Instagram風のプッシュ）
+   進む方向へスライドしながらフェードインする
+   ============================================= */
+@keyframes pageEnterFromRight {
+  from {
+    opacity: 0;
+    transform: translate3d(28px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes pageEnterFromLeft {
+  from {
+    opacity: 0;
+    transform: translate3d(-28px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.page-enter-right {
+  animation: pageEnterFromRight 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.page-enter-left {
+  animation: pageEnterFromLeft 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* 全画面シート：右から差し込む（詳細画面へのプッシュ） */
+@keyframes sheetFromRight {
+  from {
+    transform: translate3d(100%, 0, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.sheet-from-right {
+  animation: sheetFromRight 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ボトムシート：下からせり上がる */
+@keyframes sheetFromBottom {
+  from {
+    transform: translate3d(0, 100%, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.sheet-from-bottom {
+  animation: sheetFromBottom 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* 背景オーバーレイのフェード */
+@keyframes overlayFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.overlay-fade-in {
+  animation: overlayFadeIn 200ms ease both;
+}
+
+/* =============================================
+   アニメーション抑制設定を尊重する
+   ============================================= */
+@media (prefers-reduced-motion: reduce) {
+  .page-enter-right,
+  .page-enter-left,
+  .sheet-from-right,
+  .sheet-from-bottom,
+  .overlay-fade-in {
+    animation: none;
+  }
+  .btn3d,
+  .btn-press {
+    transition: none;
+  }
+}

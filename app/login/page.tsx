@@ -77,7 +77,7 @@ function LoginContent() {
         {/* Googleログインボタン */}
         <button
           onClick={handleLogin}
-          className="w-full flex items-center justify-center gap-3 bg-white border border-gray-300 rounded-lg py-3 px-4 text-sm font-medium text-gray-700 hover:bg-gray-50 active:bg-gray-100 transition-colors shadow-sm"
+          className="btn3d btn-neutral w-full py-3.5 px-4 text-sm text-gray-700"
         >
           <svg width="18" height="18" viewBox="0 0 18 18">
             <path

@@ -9,6 +9,7 @@ import {
   Sector,
 } from "recharts";
 import type { SalaryBreakdown } from "@/lib/salary";
+import { CalendarIcon } from "@/components/NavIcons";
 
 // =============================================
 // ユーティリティ
@@ -241,7 +242,8 @@ export default function ChartPage() {
         <div className="flex items-center justify-between">
           <button
             onClick={() => moveMonth(-1)}
-            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+            className="btn-press w-10 h-10 flex items-center justify-center text-xl text-gray-500 hover:bg-gray-100 rounded-xl"
+            aria-label="前の月"
           >
             ‹
           </button>
@@ -250,7 +252,8 @@ export default function ChartPage() {
           </h1>
           <button
             onClick={() => moveMonth(1)}
-            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+            className="btn-press w-10 h-10 flex items-center justify-center text-xl text-gray-500 hover:bg-gray-100 rounded-xl"
+            aria-label="次の月"
           >
             ›
           </button>
@@ -274,7 +277,7 @@ export default function ChartPage() {
       {/* データなし */}
       {!loading && !error && salaries.length === 0 && (
         <div className="bg-white rounded-2xl border border-gray-200 p-10 text-center">
-          <p className="text-4xl mb-3">📅</p>
+          <CalendarIcon className="w-10 h-10 mx-auto mb-3 text-gray-300" />
           <p className="text-gray-500 text-sm">
             {formatYearMonth(yearMonth)}の予定が見つかりませんでした
           </p>
@@ -325,8 +328,8 @@ export default function ChartPage() {
                 <button
                   key={s.source.id}
                   onClick={() => setActiveIndex(i)}
-                  className={`flex items-center gap-1.5 text-sm transition-opacity ${
-                    activeIndex === i ? "opacity-100 font-semibold" : "opacity-60"
+                  className={`btn3d btn3d-sm px-3 py-1.5 text-sm ${
+                    activeIndex === i ? "btn-soft-blue" : "btn-soft-gray"
                   }`}
                 >
                   <span

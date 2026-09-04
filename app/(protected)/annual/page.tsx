@@ -75,10 +75,8 @@ function MonthlyTable({
               <div className="text-right">
                 <button
                   onClick={() => onEdit({ source, yearMonth: ym, record: rec })}
-                  className={`text-xs px-2.5 py-1 rounded-lg font-medium transition-colors ${
-                    rec
-                      ? "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                      : "bg-blue-50 text-blue-600 hover:bg-blue-100"
+                  className={`btn3d btn3d-sm text-xs px-3 py-1.5 ${
+                    rec ? "btn-soft-gray" : "btn-soft-blue"
                   }`}
                 >
                   {rec ? "編集" : "入力"}
@@ -173,10 +171,8 @@ function TotalTable({
               <div className="text-right">
                 <button
                   onClick={() => onEditExtra(ym, extra)}
-                  className={`text-xs font-medium rounded-md px-1.5 py-0.5 transition-colors ${
-                    extraAmount > 0
-                      ? "text-emerald-600 hover:bg-emerald-50"
-                      : "text-gray-300 hover:bg-gray-100 hover:text-gray-400"
+                  className={`btn3d btn3d-sm text-xs px-2 py-1 ${
+                    extraAmount > 0 ? "btn-soft-emerald" : "btn-soft-gray"
                   }`}
                   title={extra?.memo ?? "その他収入を入力"}
                 >
@@ -241,9 +237,9 @@ function ExtraIncomeSheet({
   };
 
   return (
-    <div className="fixed inset-0 z-[60] bg-black/30 flex items-end sm:items-center sm:justify-center" onClick={onClose}>
+    <div className="fixed inset-0 z-[60] bg-black/30 flex items-end sm:items-center sm:justify-center overlay-fade-in" onClick={onClose}>
       <div
-        className="w-full sm:max-w-sm bg-white rounded-t-2xl sm:rounded-2xl p-5 pb-8"
+        className="w-full sm:max-w-sm bg-white rounded-t-2xl sm:rounded-2xl p-5 pb-8 sheet-from-bottom"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
@@ -252,7 +248,7 @@ function ExtraIncomeSheet({
           </h3>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100"
+            className="btn-press w-9 h-9 flex items-center justify-center rounded-xl text-gray-400 hover:bg-gray-100"
             aria-label="閉じる"
           >
             ✕
@@ -298,14 +294,14 @@ function ExtraIncomeSheet({
         <div className="flex gap-3 mt-5">
           <button
             onClick={onClose}
-            className="flex-1 py-3 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50"
+            className="btn3d btn-neutral flex-1 py-3 text-sm"
           >
             キャンセル
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
-            className="flex-1 py-3 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 disabled:opacity-50"
+            className="btn3d btn-success flex-1 py-3 text-sm"
           >
             {saving ? "保存中..." : "保存"}
           </button>
@@ -405,11 +401,11 @@ function EditSheet({
   );
 
   return (
-    <div className="fixed inset-0 z-[60] bg-white flex flex-col">
+    <div className="fixed inset-0 z-[60] bg-white flex flex-col sheet-from-right">
       <div className="shrink-0 flex items-center gap-3 px-4 py-3 border-b border-gray-100">
         <button
           onClick={onClose}
-          className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
+          className="btn-press w-9 h-9 flex items-center justify-center rounded-xl text-gray-500 hover:bg-gray-100"
           aria-label="閉じる"
         >
           ✕
@@ -460,14 +456,14 @@ function EditSheet({
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 py-3 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50"
+            className="btn3d btn-neutral flex-1 py-3 text-sm"
           >
             キャンセル
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
-            className="flex-1 py-3 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+            className="btn3d btn-primary flex-1 py-3 text-sm"
           >
             {saving ? "保存中..." : "保存"}
           </button>
@@ -546,14 +542,16 @@ export default function AnnualPage() {
         <div className="flex items-center justify-between">
           <button
             onClick={() => { setYear((y) => y - 1); setActiveTab(0); }}
-            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
+            className="btn-press w-10 h-10 flex items-center justify-center text-xl text-gray-500 hover:bg-gray-100 rounded-xl"
+            aria-label="前の年"
           >
             ‹
           </button>
           <h1 className="text-xl font-bold text-gray-900">{year}年</h1>
           <button
             onClick={() => { setYear((y) => y + 1); setActiveTab(0); }}
-            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
+            className="btn-press w-10 h-10 flex items-center justify-center text-xl text-gray-500 hover:bg-gray-100 rounded-xl"
+            aria-label="次の年"
           >
             ›
           </button>
@@ -583,19 +581,17 @@ export default function AnnualPage() {
               href="https://plenus-cws.company.works-hi.com/self-workflow/csd/main"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-orange-50 border border-orange-200 rounded-xl text-xs font-medium text-orange-700 hover:bg-orange-100 transition-colors"
+              className="btn3d btn-soft-orange flex-1 py-2.5 text-xs"
             >
-              <span>🍱</span>
-              <span>やよい軒 明細</span>
+              やよい軒 明細
             </a>
             <a
               href="https://kdedu.smarthr.jp/payslips?ref_notification_id=44ea7435-0925-4ca3-87a3-802a456b95e7"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-purple-50 border border-purple-200 rounded-xl text-xs font-medium text-purple-700 hover:bg-purple-100 transition-colors"
+              className="btn3d btn-soft-purple flex-1 py-2.5 text-xs"
             >
-              <span>🎓</span>
-              <span>N高 明細</span>
+              N高 明細
             </a>
           </div>
 
@@ -614,10 +610,8 @@ export default function AnnualPage() {
                   <button
                     key={s.id}
                     onClick={() => setActiveTab(i)}
-                    className={`shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                      activeTab === i
-                        ? "bg-blue-600 text-white"
-                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    className={`btn3d btn3d-sm shrink-0 px-4 py-1.5 text-sm ${
+                      activeTab === i ? "btn-primary" : "btn-soft-gray"
                     }`}
                   >
                     {s.name}
@@ -626,10 +620,8 @@ export default function AnnualPage() {
                 {/* 合計タブ */}
                 <button
                   onClick={() => setActiveTab(totalTabIndex)}
-                  className={`shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                    isTotal
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  className={`btn3d btn3d-sm shrink-0 px-4 py-1.5 text-sm ${
+                    isTotal ? "btn-primary" : "btn-soft-gray"
                   }`}
                 >
                   合計

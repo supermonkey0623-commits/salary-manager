@@ -205,14 +205,14 @@ export default function IncomeSourceForm({ initial, onSave, onCancel }: Props) {
         <button
           type="button"
           onClick={onCancel}
-          className="flex-1 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+          className="btn3d btn-neutral flex-1 py-3 text-sm"
         >
           キャンセル
         </button>
         <button
           type="submit"
           disabled={loading}
-          className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          className="btn3d btn-primary flex-1 py-3 text-sm"
         >
           {loading ? "保存中..." : "保存"}
         </button>
