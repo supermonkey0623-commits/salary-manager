@@ -7,7 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "個人給与管理Webアプリ",
     start_url: "/payslip",
     display: "standalone",
-    background_color: "#f9fafb",
+    // 起動画面(splash)の地色。生成したスプラッシュ画像と揃える
+    background_color: "#ffffff",
     theme_color: "#2563eb",
     icons: [
       // 通常アイコン（Android必須の192/512を含める）

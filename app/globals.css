@@ -230,6 +230,23 @@ a {
 }
 
 /* =============================================
+   スプラッシュ画面の保険
+   JSが動かなかった場合でも一定時間後に必ず消えるようにする。
+   fill-mode は forwards のみ（both にすると遅延中も from が適用され、
+   JS側のフェードアウトを打ち消してしまうため）
+   ============================================= */
+@keyframes splashAutoHide {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+.splash-screen {
+  animation: splashAutoHide 400ms ease 4000ms forwards;
+}
+
+/* =============================================
    アニメーション抑制設定を尊重する
    ============================================= */
 @media (prefers-reduced-motion: reduce) {
@@ -240,6 +257,7 @@ a {
   .overlay-fade-in {
     animation: none;
   }
+  /* .splash-screen は消えなくなると操作不能になるため除外する */
   .btn3d,
   .btn-press {
     transition: none;
