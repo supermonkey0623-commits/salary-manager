@@ -30,3 +30,9 @@ Thumbs.db
 
 # Tesseractキャッシュ（jpn.traineddata は npm run setup:tessdata で取得）
 .cache/
+
+.vercel
+
+# 移行用の中間データ（個人の家計情報を含むためコミットしない）
+# データはSupabaseへ投入済み。再実行が必要な場合はNotionから再取得する
+scripts/migration/
