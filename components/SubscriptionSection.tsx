@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import { createPortal } from "react-dom";
 import type { Subscription } from "@/types/database";
 import { formatRenewal, daysUntilRenewal } from "@/lib/subscription";
@@ -243,41 +243,32 @@ function SubscriptionSheet({
 // =============================================
 // サブスク一覧（設定画面のセクション）
 // =============================================
-export default function SubscriptionSection() {
-  const [subs, setSubs] = useState<Subscription[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function SubscriptionSection({
+  subscriptions,
+  loading,
+  onChanged,
+}: {
+  subscriptions: Subscription[];
+  loading: boolean;
+  // 追加・更新・削除のあとに親へ再取得を促す
+  onChanged: () => void;
+}) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editing, setEditing] = useState<Subscription | null>(null);
 
-  const fetchSubs = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/subscriptions");
-      if (res.ok) setSubs(await res.json());
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchSubs();
-  }, [fetchSubs]);
-
+  const subs = subscriptions;
   const active = subs.filter((s) => s.is_active);
   const cancelled = subs.filter((s) => !s.is_active);
   const monthlyTotal = active.reduce((s, x) => s + x.amount, 0);
 
   return (
     <div className="mb-6">
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">
-          固定費・サブスク
-        </h2>
+      <div className="flex items-center justify-end mb-3">
         <button
           onClick={() => setSheetOpen(true)}
           className="btn3d btn3d-sm btn-soft-blue px-3 py-1.5 text-sm"
         >
-          ＋ 追加
+          ＋ 項目を追加
         </button>
       </div>
 
@@ -374,14 +365,14 @@ export default function SubscriptionSection() {
         <SubscriptionSheet
           initial={null}
           onClose={() => setSheetOpen(false)}
-          onSaved={fetchSubs}
+          onSaved={onChanged}
         />
       )}
       {editing && (
         <SubscriptionSheet
           initial={editing}
           onClose={() => setEditing(null)}
-          onSaved={fetchSubs}
+          onSaved={onChanged}
         />
       )}
     </div>

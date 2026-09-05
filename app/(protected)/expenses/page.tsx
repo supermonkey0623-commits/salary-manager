@@ -2,7 +2,13 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
-import type { Expense, MonthlyRecord, ExtraIncome, Subscription } from "@/types/database";
+import type {
+  Expense,
+  MonthlyRecord,
+  ExtraIncome,
+  Subscription,
+  ExpenseBreakdownLine,
+} from "@/types/database";
 import type { SalaryBreakdown } from "@/lib/salary";
 import {
   EXPENSE_CATEGORIES,
@@ -36,6 +42,9 @@ function shortDate(d: string): string {
   return `${Number(m)}/${Number(day)}`;
 }
 
+// 内訳1行（入力中は金額も文字列で持つ）
+type BreakdownLine = { title: string; amount: string };
+
 // 入力フォームの状態
 type FormState = {
   date: string;
@@ -43,28 +52,47 @@ type FormState = {
   amount: string;
   category: string;
   payment_method: string;
+  breakdown: BreakdownLine[];
 };
+
+// 内訳の合計（空欄は0として扱う）
+function sumLines(lines: BreakdownLine[]): number {
+  return lines.reduce((s, l) => s + (Number(l.amount) || 0), 0);
+}
+
+// 中身のある行が1つでもあるか
+function hasLines(lines: BreakdownLine[]): boolean {
+  return lines.some((l) => l.title.trim() !== "" || Number(l.amount) > 0);
+}
+
+// 入力中の内訳を保存用の形（数値）に変換する。空の行は捨てる
+function toSavedLines(lines: BreakdownLine[]): ExpenseBreakdownLine[] | null {
+  const out = lines
+    .map((l) => ({ title: l.title.trim(), amount: Number(l.amount) || 0 }))
+    .filter((l) => l.title !== "" || l.amount > 0);
+  return out.length > 0 ? out : null;
+}
 
 // =============================================
 // 支出の入力・編集シート
 //
 // 全画面シートとして、ヘッダー／入力欄／フッターを縦に固定配置する。
-// ・金額欄が常に最上部に見える
-// ・キーボードが出ても追加ボタンがスクロール領域の外にあるため隠れない
-// body直下へポータルで描画し、祖先のtransform等の影響を受けないようにする。
+// 内訳（メモ欄）に行があるときは、金額をその合計で自動計算し編集不可にする。
+// カテゴリが固定費のときは、登録済みの固定費・サブスクから内訳を自動で入れる。
 // =============================================
 function ExpenseSheet({
   initial,
   defaultDate,
   prefill,
+  subscriptions,
   onClose,
   onSubmit,
   onDelete,
 }: {
   initial: Expense | null;
   defaultDate: string;
-  // 新規追加時に初期値を埋めておきたい場合に渡す（固定費の計上など）
   prefill?: FormState | null;
+  subscriptions: Subscription[];
   onClose: () => void;
   onSubmit: (form: FormState) => void;
   onDelete?: () => void;
@@ -77,6 +105,10 @@ function ExpenseSheet({
         amount: String(initial.amount),
         category: initial.category,
         payment_method: initial.payment_method,
+        breakdown: (initial.breakdown ?? []).map((l) => ({
+          title: l.title,
+          amount: String(l.amount),
+        })),
       };
     }
     return (
@@ -86,6 +118,7 @@ function ExpenseSheet({
         amount: "",
         category: EXPENSE_CATEGORIES[0],
         payment_method: PAYMENT_METHODS[0],
+        breakdown: [],
       }
     );
   });
@@ -94,13 +127,53 @@ function ExpenseSheet({
   const set = (key: keyof FormState, value: string) =>
     setForm((f) => ({ ...f, [key]: value }));
 
+  const breakdownSum = sumLines(form.breakdown);
+  const usesBreakdown = hasLines(form.breakdown);
+  const effectiveAmount = usesBreakdown ? breakdownSum : Number(form.amount) || 0;
+
+  // 登録済みの固定費・サブスクから内訳を作る
+  const linesFromSubscriptions = (): BreakdownLine[] =>
+    subscriptions.map((s) => ({ title: s.name, amount: String(s.amount) }));
+
+  // カテゴリ選択。固定費を選んだとき内訳が空なら自動で埋める
+  const selectCategory = (c: string) => {
+    setForm((f) => {
+      const next = { ...f, category: c };
+      if (c === "固定費" && !hasLines(f.breakdown) && subscriptions.length > 0) {
+        next.breakdown = linesFromSubscriptions();
+      }
+      return next;
+    });
+  };
+
+  const setLine = (index: number, key: keyof BreakdownLine, value: string) =>
+    setForm((f) => ({
+      ...f,
+      breakdown: f.breakdown.map((l, i) =>
+        i === index ? { ...l, [key]: value } : l
+      ),
+    }));
+
+  const addLine = () =>
+    setForm((f) => ({
+      ...f,
+      breakdown: [...f.breakdown, { title: "", amount: "" }],
+    }));
+
+  const removeLine = (index: number) =>
+    setForm((f) => ({
+      ...f,
+      breakdown: f.breakdown.filter((_, i) => i !== index),
+    }));
+
   const handleSubmit = () => {
-    const amount = Number(form.amount);
-    if (!Number.isFinite(amount) || amount <= 0) {
-      setError("金額を入力してください");
+    if (!Number.isFinite(effectiveAmount) || effectiveAmount <= 0) {
+      setError(
+        usesBreakdown ? "内訳の金額を入力してください" : "金額を入力してください"
+      );
       return;
     }
-    onSubmit(form);
+    onSubmit({ ...form, amount: String(effectiveAmount) });
   };
 
   return createPortal(
@@ -124,19 +197,30 @@ function ExpenseSheet({
 
       {/* 入力欄（ここだけスクロールする） */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
-        {/* 金額：最優先で入力させる */}
+        {/* 金額：内訳があるときは合計を自動表示する */}
         <div>
           <label className="block text-xs text-gray-500 mb-1.5">金額（円）</label>
-          <input
-            type="number"
-            inputMode="numeric"
-            min="0"
-            value={form.amount}
-            onChange={(e) => set("amount", e.target.value)}
-            placeholder="0"
-            autoFocus={!initial}
-            className="w-full border border-gray-300 rounded-xl px-4 py-3 text-3xl font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+          {usesBreakdown ? (
+            <>
+              <div className="w-full border border-gray-200 bg-gray-50 rounded-xl px-4 py-3 text-3xl font-bold text-gray-900">
+                {breakdownSum.toLocaleString()}
+              </div>
+              <p className="text-xs text-gray-400 mt-1">
+                内訳の合計です。金額を変えるには内訳を編集してください
+              </p>
+            </>
+          ) : (
+            <input
+              type="number"
+              inputMode="numeric"
+              min="0"
+              value={form.amount}
+              onChange={(e) => set("amount", e.target.value)}
+              placeholder="0"
+              autoFocus={!initial}
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 text-3xl font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          )}
         </div>
 
         {/* 項目 */}
@@ -151,6 +235,71 @@ function ExpenseSheet({
           />
         </div>
 
+        {/* 内訳（メモ欄） */}
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="text-xs text-gray-500">
+              内訳<span className="text-gray-400 ml-1">（任意）</span>
+            </label>
+            {usesBreakdown && (
+              <span className="text-xs font-medium text-gray-600">
+                合計 {yen(breakdownSum)}
+              </span>
+            )}
+          </div>
+
+          {form.breakdown.length > 0 && (
+            <div className="space-y-2 mb-2">
+              {form.breakdown.map((line, i) => (
+                <div key={i} className="flex gap-2">
+                  <input
+                    type="text"
+                    value={line.title}
+                    onChange={(e) => setLine(i, "title", e.target.value)}
+                    placeholder="例：通信費"
+                    className="flex-1 min-w-0 border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min="0"
+                    value={line.amount}
+                    onChange={(e) => setLine(i, "amount", e.target.value)}
+                    placeholder="0"
+                    className="w-24 shrink-0 border border-gray-300 rounded-xl px-2 py-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <button
+                    onClick={() => removeLine(i)}
+                    className="btn-press w-9 shrink-0 flex items-center justify-center rounded-xl text-gray-400 hover:bg-gray-100"
+                    aria-label="この行を削除"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={addLine}
+              className="btn3d btn3d-sm btn-soft-gray px-3 py-1.5 text-xs"
+            >
+              ＋ 行を追加
+            </button>
+            {subscriptions.length > 0 && (
+              <button
+                onClick={() =>
+                  setForm((f) => ({ ...f, breakdown: linesFromSubscriptions() }))
+                }
+                className="btn3d btn3d-sm btn-soft-orange px-3 py-1.5 text-xs"
+              >
+                固定費から入れる
+              </button>
+            )}
+          </div>
+        </div>
+
         {/* カテゴリ：タップで選択 */}
         <div>
           <label className="block text-xs text-gray-500 mb-1.5">カテゴリ</label>
@@ -160,7 +309,7 @@ function ExpenseSheet({
               return (
                 <button
                   key={c}
-                  onClick={() => set("category", c)}
+                  onClick={() => selectCategory(c)}
                   className="btn3d btn3d-sm px-3 py-1.5 text-xs"
                   style={
                     active
@@ -401,6 +550,7 @@ export default function ExpensesPage() {
       amount: Math.floor(Number(form.amount)),
       category: form.category,
       payment_method: form.payment_method,
+      breakdown: toSavedLines(form.breakdown),
       created_at: new Date().toISOString(),
     };
     setExpenses((prev) => [temp, ...prev]);
@@ -433,6 +583,11 @@ export default function ExpensesPage() {
       amount: String(subsTotal),
       category: "固定費",
       payment_method: "クレジットカード",
+      // 何が何円かを内訳として残す
+      breakdown: activeSubs.map((sub) => ({
+        title: sub.name,
+        amount: String(sub.amount),
+      })),
     });
     setSheetOpen(true);
   };
@@ -450,6 +605,7 @@ export default function ExpensesPage() {
       amount: Math.floor(Number(form.amount)),
       category: form.category,
       payment_method: form.payment_method,
+      breakdown: toSavedLines(form.breakdown),
     };
     setExpenses((prev) => prev.map((e) => (e.id === target.id ? updated : e)));
 
@@ -658,6 +814,9 @@ export default function ExpensesPage() {
                       </span>
                       <span className="block text-xs text-gray-400">
                         {e.category}・{e.payment_method}
+                        {e.breakdown && e.breakdown.length > 0
+                          ? `・内訳${e.breakdown.length}件`
+                          : ""}
                       </span>
                     </span>
                     <span className="text-sm font-semibold text-gray-900 shrink-0">
@@ -677,6 +836,7 @@ export default function ExpensesPage() {
           initial={null}
           defaultDate={defaultDate}
           prefill={prefill}
+          subscriptions={activeSubs}
           onClose={() => {
             setSheetOpen(false);
             setPrefill(null);
@@ -690,6 +850,7 @@ export default function ExpensesPage() {
         <ExpenseSheet
           initial={editing}
           defaultDate={defaultDate}
+          subscriptions={activeSubs}
           onClose={() => setEditing(null)}
           onSubmit={handleUpdate}
           onDelete={handleDelete}

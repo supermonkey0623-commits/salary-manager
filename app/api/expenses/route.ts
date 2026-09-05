@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
-import { monthRange } from "@/lib/expense";
+import { monthRange, normalizeBreakdown, breakdownTotal } from "@/lib/expense";
 
 // 指定月の支出を取得（月単位に絞り、全件は取得しない）
 export async function GET(req: NextRequest) {
@@ -48,14 +48,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "金額の指定が不正です" }, { status: 400 });
   }
 
+  // 内訳がある場合は金額をその合計で上書きし、両者がずれないようにする
+  const breakdown = normalizeBreakdown(body.breakdown);
+  const finalAmount = breakdown ? breakdownTotal(breakdown) : Math.floor(amount);
+
   const { data, error } = await supabase
     .from("expenses")
     .insert({
       date: body.date,
       item: String(body.item ?? "").trim() || "（無題）",
-      amount: Math.floor(amount),
+      amount: finalAmount,
       category: body.category,
       payment_method: body.payment_method,
+      breakdown,
     })
     .select()
     .single();

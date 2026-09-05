@@ -1,3 +1,5 @@
+import type { ExpenseBreakdownLine } from "@/types/database";
+
 // =============================================
 // 家計簿の定数と集計ヘルパー
 //
@@ -57,4 +59,31 @@ export function monthRange(yearMonth: string): { from: string; to: string } {
     from: `${yearMonth}-01`,
     to: `${yearMonth}-${String(last).padStart(2, "0")}`,
   };
+}
+
+// =============================================
+// 内訳（メモ欄）のヘルパー
+// =============================================
+
+// 受け取った内訳を保存できる形に整える。
+// タイトルも金額も空の行は捨て、1行も残らなければ null を返す
+export function normalizeBreakdown(raw: unknown): ExpenseBreakdownLine[] | null {
+  if (!Array.isArray(raw)) return null;
+  const lines = raw
+    .map((l) => {
+      const o = (l ?? {}) as { title?: unknown; amount?: unknown };
+      return {
+        title: String(o.title ?? "").trim(),
+        amount: Math.floor(Number(o.amount) || 0),
+      };
+    })
+    .filter((l) => l.title !== "" || l.amount > 0);
+  return lines.length > 0 ? lines : null;
+}
+
+// 内訳の合計
+export function breakdownTotal(
+  lines: ExpenseBreakdownLine[] | null | undefined
+): number {
+  return (lines ?? []).reduce((sum, l) => sum + (Number(l.amount) || 0), 0);
 }

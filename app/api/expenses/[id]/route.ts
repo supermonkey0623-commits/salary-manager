@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
+import { normalizeBreakdown, breakdownTotal } from "@/lib/expense";
 
 // 支出を更新
 export async function PUT(
@@ -22,14 +23,19 @@ export async function PUT(
     return NextResponse.json({ error: "金額の指定が不正です" }, { status: 400 });
   }
 
+  // 内訳がある場合は金額をその合計で上書きし、両者がずれないようにする
+  const breakdown = normalizeBreakdown(body.breakdown);
+  const finalAmount = breakdown ? breakdownTotal(breakdown) : Math.floor(amount);
+
   const { data, error } = await supabase
     .from("expenses")
     .update({
       date: body.date,
       item: String(body.item ?? "").trim() || "（無題）",
-      amount: Math.floor(amount),
+      amount: finalAmount,
       category: body.category,
       payment_method: body.payment_method,
+      breakdown,
     })
     .eq("id", id)
     .select()

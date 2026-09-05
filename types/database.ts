@@ -117,13 +117,20 @@ export type ExtraIncomeUpdate = Partial<ExtraIncomeInsert>;
 // =============================================
 // 支出（家計簿）
 // =============================================
+// 支出の内訳1行（メモ欄）
+export type ExpenseBreakdownLine = {
+  title: string;   // 何に使ったか
+  amount: number;  // いくらか（円）
+};
+
 export type Expense = {
   id: string;
   date: string;            // 日付（YYYY-MM-DD）
   item: string;            // 項目（自由入力）
-  amount: number;          // 値段（円）
+  amount: number;          // 値段（円）※内訳がある場合はその合計
   category: string;        // カテゴリ
   payment_method: string;  // 支払方法
+  breakdown: ExpenseBreakdownLine[] | null; // 内訳（任意）
   created_at: string;
 };
 
