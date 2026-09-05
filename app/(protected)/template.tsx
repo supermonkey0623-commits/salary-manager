@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 
 // ボトムナビの並び順。この順序で進行方向（左右）を決める
-const NAV_ORDER = ["/payslip", "/chart", "/annual", "/settings"];
+const NAV_ORDER = ["/payslip", "/chart", "/annual", "/expenses", "/settings"];
 
 // template はページ遷移のたびに再マウントされるため、
 // 直前の位置はモジュール変数（マウントをまたいで保持される）で覚えておく

@@ -4,7 +4,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useEffect } from "react";
 
 // ボトムナビと同じ並び順。スワイプで隣のタブへ移動する
-const NAV_ORDER = ["/payslip", "/chart", "/annual", "/settings"];
+const NAV_ORDER = ["/payslip", "/chart", "/annual", "/expenses", "/settings"];
 
 // 遷移と判定する最小の横移動量（px）
 const MIN_DISTANCE = 55;

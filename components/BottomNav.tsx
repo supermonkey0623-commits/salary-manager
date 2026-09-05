@@ -6,6 +6,7 @@ import {
   PayslipIcon,
   ChartIcon,
   TableIcon,
+  WalletIcon,
   SettingsIcon,
 } from "@/components/NavIcons";
 
@@ -14,6 +15,7 @@ const NAV_ITEMS = [
   { href: "/payslip", label: "給与明細", Icon: PayslipIcon },
   { href: "/chart", label: "収入グラフ", Icon: ChartIcon },
   { href: "/annual", label: "年間DB", Icon: TableIcon },
+  { href: "/expenses", label: "家計簿", Icon: WalletIcon },
   { href: "/settings", label: "設定", Icon: SettingsIcon },
 ];
 

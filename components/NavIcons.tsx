@@ -60,6 +60,17 @@ export function TableIcon({ className }: IconProps) {
   );
 }
 
+// 家計簿：財布（本体＋折り返し線＋留め具）
+export function WalletIcon({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <rect x="3" y="6" width="18" height="14" rx="3" />
+      <line x1="3" y1="10.5" x2="21" y2="10.5" />
+      <circle cx="16.5" cy="15.5" r="1.4" />
+    </Svg>
+  );
+}
+
 // 空状態表示用：カレンダー（枠＋見出し罫＋留め具）
 export function CalendarIcon({ className }: IconProps) {
   return (

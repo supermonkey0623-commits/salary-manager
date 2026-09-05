@@ -37,6 +37,12 @@ export type Database = {
         Update: ExtraIncomeUpdate;
         Relationships: [];
       };
+      expenses: {
+        Row: Expense;
+        Insert: ExpenseInsert;
+        Update: ExpenseUpdate;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -101,6 +107,26 @@ export type ExtraIncomeInsert = Omit<ExtraIncome, "updated_at"> & {
 };
 
 export type ExtraIncomeUpdate = Partial<ExtraIncomeInsert>;
+
+// =============================================
+// 支出（家計簿）
+// =============================================
+export type Expense = {
+  id: string;
+  date: string;            // 日付（YYYY-MM-DD）
+  item: string;            // 項目（自由入力）
+  amount: number;          // 値段（円）
+  category: string;        // カテゴリ
+  payment_method: string;  // 支払方法
+  created_at: string;
+};
+
+export type ExpenseInsert = Omit<Expense, "id" | "created_at"> & {
+  id?: string;
+  created_at?: string;
+};
+
+export type ExpenseUpdate = Partial<ExpenseInsert>;
 
 // =============================================
 // 月次記録
