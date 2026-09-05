@@ -10,6 +10,7 @@ import {
 } from "recharts";
 import type { SalaryBreakdown } from "@/lib/salary";
 import { CalendarIcon } from "@/components/NavIcons";
+import { markAppReady } from "@/lib/appReady";
 
 // =============================================
 // ユーティリティ
@@ -208,6 +209,8 @@ export default function ChartPage() {
       setError("通信エラーが発生しました");
     } finally {
       setLoading(false);
+      // 中身が出揃ったのでスプラッシュを終了させる
+      markAppReady();
     }
   }, []);
 

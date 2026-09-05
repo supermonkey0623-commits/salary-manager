@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import type { IncomeSource, MonthlyRecord, ExtraIncome } from "@/types/database";
+import { markAppReady } from "@/lib/appReady";
 
 function yen(n: number): string {
   return `¥${Math.floor(n).toLocaleString()}`;
@@ -309,7 +310,7 @@ function ExtraIncomeSheet({
   };
 
   return (
-    <div className="fixed inset-0 z-[60] bg-black/30 flex items-end sm:items-center sm:justify-center overlay-fade-in" onClick={onClose}>
+    <div className="fixed inset-0 z-[60] bg-black/30 flex items-end sm:items-center sm:justify-center overlay-fade-in" onClick={onClose} data-no-swipe>
       <div
         className="w-full sm:max-w-sm bg-white rounded-t-2xl sm:rounded-2xl p-5 pb-8 sheet-from-bottom"
         onClick={(e) => e.stopPropagation()}
@@ -477,7 +478,7 @@ function EditSheet({
   );
 
   return (
-    <div className="fixed inset-0 z-[60] bg-white flex flex-col sheet-from-right">
+    <div className="fixed inset-0 z-[60] bg-white flex flex-col sheet-from-right" data-no-swipe>
       <div className="shrink-0 flex items-center gap-3 px-4 py-3 border-b border-gray-100">
         <button
           onClick={onClose}
@@ -601,6 +602,8 @@ export default function AnnualPage() {
       setError("通信エラーが発生しました");
     } finally {
       setLoading(false);
+      // 中身が出揃ったのでスプラッシュを終了させる
+      markAppReady();
     }
   }, []);
 
@@ -690,7 +693,7 @@ export default function AnnualPage() {
           ) : (
             <>
               {/* 収入源タブ + 合計タブ */}
-              <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
+              <div className="flex gap-2 mb-3 overflow-x-auto pb-1" data-no-swipe>
                 {sources.map((s, i) => (
                   <button
                     key={s.id}

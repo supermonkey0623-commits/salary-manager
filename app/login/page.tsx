@@ -4,6 +4,7 @@ import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { recordAutoLoginAttempt } from "@/lib/autoLoginGuard";
+import { markAppReady } from "@/lib/appReady";
 
 const ERROR_MESSAGES: Record<string, string> = {
   AccessDenied: "このGoogleアカウントはアクセスが許可されていません。",
@@ -30,6 +31,8 @@ function LoginContent() {
   const shouldAutoLogin = !errorCode || errorCode === "SessionExpired";
 
   useEffect(() => {
+    // ログイン画面まで来たらスプラッシュの役目は終わり
+    markAppReady();
     if (!shouldAutoLogin) return;
     // 5分間に4回以上リダイレクトが繰り返される場合はループとみなして停止
     if (!recordAutoLoginAttempt("login_page_auto", 3, 5 * 60 * 1000)) {

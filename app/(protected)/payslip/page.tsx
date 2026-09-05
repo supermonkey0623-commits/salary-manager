@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import type { SalaryBreakdown, WorkBreakdown } from "@/lib/salary";
+import { markAppReady } from "@/lib/appReady";
 
 // 月を YYYY-MM 形式にフォーマット
 function toYearMonth(date: Date): string {
@@ -356,6 +357,8 @@ export default function PayslipPage() {
       setError("通信エラーが発生しました");
     } finally {
       setLoading(false);
+      // 中身が出揃ったのでスプラッシュを終了させる
+      markAppReady();
     }
   }, []);
 
@@ -403,7 +406,7 @@ export default function PayslipPage() {
 
       {/* 収入源タブ */}
       {activeSalaries.length > 1 && (
-        <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
+        <div className="flex gap-2 mb-4 overflow-x-auto pb-1" data-no-swipe>
           {activeSalaries.map((s, i) => (
             <button
               key={s.source.id}

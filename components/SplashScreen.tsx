@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { onAppReady } from "@/lib/appReady";
 
 // =============================================
 // 起動時のスプラッシュ画面
@@ -13,8 +14,9 @@ import { useEffect, useState } from "react";
 
 // ちらつき防止の最低表示時間
 const MIN_VISIBLE_MS = 400;
-// 読み込みが終わらない場合でも必ず消す上限
-const MAX_VISIBLE_MS = 3000;
+// データ取得が終わらない場合でも必ず消す上限
+// （カレンダーAPIの応答が遅いこともあるため長めに取る）
+const MAX_VISIBLE_MS = 8000;
 // フェードアウトにかける時間
 const FADE_MS = 300;
 
@@ -89,16 +91,14 @@ export default function SplashScreen() {
       );
     };
 
-    if (document.readyState === "complete") {
-      startFade();
-    } else {
-      window.addEventListener("load", startFade, { once: true });
-    }
-    // 読み込みが終わらないケースの保険
+    // ページの読み込みだけでなく、初期データの取得完了まで待つ。
+    // これによりスプラッシュが消えた時点で中身が表示済みになる。
+    const unsubscribe = onAppReady(startFade);
+    // データ取得が終わらないケースの保険
     timers.push(window.setTimeout(startFade, MAX_VISIBLE_MS));
 
     return () => {
-      window.removeEventListener("load", startFade);
+      unsubscribe();
       timers.forEach(clearTimeout);
     };
   }, []);

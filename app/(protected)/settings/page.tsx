@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { signOut } from "next-auth/react";
 import IncomeSourceForm from "@/components/IncomeSourceForm";
 import type { IncomeSource } from "@/types/database";
+import { markAppReady } from "@/lib/appReady";
 
 type Mode = "list" | "add" | "edit";
 
@@ -27,6 +28,8 @@ export default function SettingsPage() {
       }
     } finally {
       setLoading(false);
+      // 中身が出揃ったのでスプラッシュを終了させる
+      markAppReady();
     }
   }, []);
 
@@ -181,7 +184,7 @@ export default function SettingsPage() {
 
       {/* ==================== 削除確認モーダル ==================== */}
       {deleteTarget && (
-        <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50 p-4 overlay-fade-in">
+        <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50 p-4 overlay-fade-in" data-no-swipe>
           <div className="bg-white rounded-2xl w-full max-w-sm p-6 sheet-from-bottom">
             <h3 className="font-bold text-gray-900 mb-2">収入源を削除しますか？</h3>
             <p className="text-sm text-gray-500 mb-1">
