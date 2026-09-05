@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
+import { createPortal } from "react-dom";
 import type { Expense, MonthlyRecord, ExtraIncome } from "@/types/database";
 import {
   EXPENSE_CATEGORIES,
@@ -45,7 +46,11 @@ type FormState = {
 
 // =============================================
 // 支出の入力・編集シート
-// 金額に最初からフォーカスし、カテゴリと支払方法はタップだけで選べるようにする
+//
+// 全画面シートとして、ヘッダー／入力欄／フッターを縦に固定配置する。
+// ・金額欄が常に最上部に見える
+// ・キーボードが出ても追加ボタンがスクロール領域の外にあるため隠れない
+// body直下へポータルで描画し、祖先のtransform等の影響を受けないようにする。
 // =============================================
 function ExpenseSheet({
   initial,
@@ -81,32 +86,30 @@ function ExpenseSheet({
     onSubmit(form);
   };
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-[60] bg-black/30 flex items-end justify-center overlay-fade-in"
-      onClick={onClose}
+      className="fixed inset-0 z-[60] bg-white flex flex-col sheet-from-bottom"
       data-no-swipe
     >
-      <div
-        className="w-full sm:max-w-md bg-white rounded-t-2xl p-5 pb-8 sheet-from-bottom max-h-[92vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-gray-800">
-            {initial ? "支出を編集" : "支出を追加"}
-          </h3>
-          <button
-            onClick={onClose}
-            className="btn-press w-9 h-9 flex items-center justify-center rounded-xl text-gray-400 hover:bg-gray-100"
-            aria-label="閉じる"
-          >
-            ✕
-          </button>
-        </div>
+      {/* ヘッダー（固定） */}
+      <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-gray-100">
+        <h3 className="font-semibold text-gray-800">
+          {initial ? "支出を編集" : "支出を追加"}
+        </h3>
+        <button
+          onClick={onClose}
+          className="btn-press w-9 h-9 flex items-center justify-center rounded-xl text-gray-400 hover:bg-gray-100"
+          aria-label="閉じる"
+        >
+          ✕
+        </button>
+      </div>
 
+      {/* 入力欄（ここだけスクロールする） */}
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
         {/* 金額：最優先で入力させる */}
-        <div className="mb-3">
-          <label className="block text-xs text-gray-500 mb-1">金額（円）</label>
+        <div>
+          <label className="block text-xs text-gray-500 mb-1.5">金額（円）</label>
           <input
             type="number"
             inputMode="numeric"
@@ -115,13 +118,13 @@ function ExpenseSheet({
             onChange={(e) => set("amount", e.target.value)}
             placeholder="0"
             autoFocus={!initial}
-            className="w-full border border-gray-300 rounded-xl px-3 py-3 text-2xl font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full border border-gray-300 rounded-xl px-4 py-3 text-3xl font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
         {/* 項目 */}
-        <div className="mb-3">
-          <label className="block text-xs text-gray-500 mb-1">項目</label>
+        <div>
+          <label className="block text-xs text-gray-500 mb-1.5">項目</label>
           <input
             type="text"
             value={form.item}
@@ -132,9 +135,9 @@ function ExpenseSheet({
         </div>
 
         {/* カテゴリ：タップで選択 */}
-        <div className="mb-3">
+        <div>
           <label className="block text-xs text-gray-500 mb-1.5">カテゴリ</label>
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-2">
             {EXPENSE_CATEGORIES.map((c) => {
               const active = form.category === c;
               return (
@@ -164,9 +167,9 @@ function ExpenseSheet({
         </div>
 
         {/* 支払方法：タップで選択 */}
-        <div className="mb-3">
+        <div>
           <label className="block text-xs text-gray-500 mb-1.5">支払方法</label>
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-2">
             {PAYMENT_METHODS.map((m) => (
               <button
                 key={m}
@@ -182,8 +185,8 @@ function ExpenseSheet({
         </div>
 
         {/* 日付 */}
-        <div className="mb-4">
-          <label className="block text-xs text-gray-500 mb-1">日付</label>
+        <div>
+          <label className="block text-xs text-gray-500 mb-1.5">日付</label>
           <input
             type="date"
             value={form.date}
@@ -191,16 +194,18 @@ function ExpenseSheet({
             className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
+      </div>
 
+      {/* フッター（固定・ホームバーの余白を確保） */}
+      <div className="shrink-0 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] border-t border-gray-100 bg-white">
         {error && (
           <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-3">
             {error}
           </p>
         )}
-
         <div className="flex gap-3">
           {initial && onDelete && (
-            <button onClick={onDelete} className="btn3d btn-soft-red px-4 py-3 text-sm">
+            <button onClick={onDelete} className="btn3d btn-soft-red px-5 py-3 text-sm">
               削除
             </button>
           )}
@@ -209,7 +214,8 @@ function ExpenseSheet({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

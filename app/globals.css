@@ -179,12 +179,17 @@ a {
   }
 }
 
+/* fill-mode は backwards のみ。
+   forwards を付けると終了後も transform が残り、その要素が
+   position:fixed の基準（containing block）になってしまうため。
+   これを付けているとシート類が画面全体ではなく本文の枠を基準に配置され、
+   左右のずれや上部の見切れが発生する。 */
 .page-enter-right {
-  animation: pageEnterFromRight 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: pageEnterFromRight 240ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
 
 .page-enter-left {
-  animation: pageEnterFromLeft 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: pageEnterFromLeft 240ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
 
 /* 全画面シート：右から差し込む（詳細画面へのプッシュ） */
