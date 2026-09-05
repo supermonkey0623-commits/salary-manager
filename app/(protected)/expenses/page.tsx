@@ -56,22 +56,38 @@ type FormState = {
 function ExpenseSheet({
   initial,
   defaultDate,
+  prefill,
   onClose,
   onSubmit,
   onDelete,
 }: {
   initial: Expense | null;
   defaultDate: string;
+  // 新規追加時に初期値を埋めておきたい場合に渡す（固定費の計上など）
+  prefill?: FormState | null;
   onClose: () => void;
   onSubmit: (form: FormState) => void;
   onDelete?: () => void;
 }) {
-  const [form, setForm] = useState<FormState>({
-    date: initial?.date ?? defaultDate,
-    item: initial?.item ?? "",
-    amount: initial ? String(initial.amount) : "",
-    category: initial?.category ?? EXPENSE_CATEGORIES[0],
-    payment_method: initial?.payment_method ?? PAYMENT_METHODS[0],
+  const [form, setForm] = useState<FormState>(() => {
+    if (initial) {
+      return {
+        date: initial.date,
+        item: initial.item,
+        amount: String(initial.amount),
+        category: initial.category,
+        payment_method: initial.payment_method,
+      };
+    }
+    return (
+      prefill ?? {
+        date: defaultDate,
+        item: "",
+        amount: "",
+        category: EXPENSE_CATEGORIES[0],
+        payment_method: PAYMENT_METHODS[0],
+      }
+    );
   });
   const [error, setError] = useState("");
 
@@ -234,6 +250,8 @@ export default function ExpensesPage() {
   const [error, setError] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
+  // 固定費の計上など、初期値を埋めた状態で追加シートを開くときに使う
+  const [prefill, setPrefill] = useState<FormState | null>(null);
   // 給与明細（カレンダーからの見込み額）。実績が未入力の月だけ使う
   const [estimate, setEstimate] = useState<number | null>(null);
   const [estimateLoading, setEstimateLoading] = useState(false);
@@ -404,17 +422,19 @@ export default function ExpensesPage() {
     }
   };
 
-  // サブスクの月額合計を「固定費」として当月へ計上する
-  // 毎月手入力していた1行を、登録済みサブスクから自動で組み立てる
+  // サブスクの月額合計を初期値として、固定費の入力シートを開く。
+  // 即登録ではなくシートを挟むのは、ClaudeProのように月額が変動するものがあり
+  // 計上前に金額を直せる必要があるため
   const handleAddFixedCost = () => {
     const month = Number(yearMonth.split("-")[1]);
-    handleCreate({
+    setPrefill({
       date: `${yearMonth}-01`,
       item: `${month}月固定費`,
       amount: String(subsTotal),
       category: "固定費",
       payment_method: "クレジットカード",
     });
+    setSheetOpen(true);
   };
 
   // 更新（楽観的更新）
@@ -532,7 +552,10 @@ export default function ExpensesPage() {
 
       {/* 追加ボタン */}
       <button
-        onClick={() => setSheetOpen(true)}
+        onClick={() => {
+          setPrefill(null);
+          setSheetOpen(true);
+        }}
         className="btn3d btn-primary w-full py-3.5 text-base mb-4"
       >
         ＋ 支出を追加
@@ -558,6 +581,9 @@ export default function ExpensesPage() {
           >
             固定費として計上する
           </button>
+          <p className="text-xs text-amber-700 mt-2 text-center">
+            金額は計上前に修正できます
+          </p>
         </div>
       )}
 
@@ -650,7 +676,11 @@ export default function ExpensesPage() {
         <ExpenseSheet
           initial={null}
           defaultDate={defaultDate}
-          onClose={() => setSheetOpen(false)}
+          prefill={prefill}
+          onClose={() => {
+            setSheetOpen(false);
+            setPrefill(null);
+          }}
           onSubmit={handleCreate}
         />
       )}

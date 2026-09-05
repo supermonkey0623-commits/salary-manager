@@ -271,7 +271,7 @@ export default function SubscriptionSection() {
     <div className="mb-6">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">
-          サブスク
+          固定費・サブスク
         </h2>
         <button
           onClick={() => setSheetOpen(true)}
@@ -285,12 +285,12 @@ export default function SubscriptionSection() {
         <p className="text-sm text-gray-400 py-4 text-center">読み込み中...</p>
       ) : subs.length === 0 ? (
         <div className="bg-white rounded-xl border border-gray-200 p-6 text-center">
-          <p className="text-sm text-gray-500 mb-3">サブスクが登録されていません</p>
+          <p className="text-sm text-gray-500 mb-3">固定費が登録されていません</p>
           <button
             onClick={() => setSheetOpen(true)}
             className="btn3d btn-primary px-5 py-2.5 text-sm"
           >
-            最初のサブスクを追加する
+            最初の固定費を追加する
           </button>
         </div>
       ) : (
@@ -298,7 +298,7 @@ export default function SubscriptionSection() {
           {/* 月額合計 */}
           <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 mb-2 flex justify-between items-center">
             <span className="text-sm text-gray-600">
-              契約中 {active.length}件の月額合計
+              有効 {active.length}件の月額合計
             </span>
             <span className="text-lg font-bold text-blue-600">{yen(monthlyTotal)}</span>
           </div>
