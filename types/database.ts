@@ -43,6 +43,12 @@ export type Database = {
         Update: ExpenseUpdate;
         Relationships: [];
       };
+      subscriptions: {
+        Row: Subscription;
+        Insert: SubscriptionInsert;
+        Update: SubscriptionUpdate;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -127,6 +133,27 @@ export type ExpenseInsert = Omit<Expense, "id" | "created_at"> & {
 };
 
 export type ExpenseUpdate = Partial<ExpenseInsert>;
+
+// =============================================
+// サブスク（固定費の内訳）
+// =============================================
+export type Subscription = {
+  id: string;
+  name: string;              // サービス名
+  amount: number;            // 月額（円）
+  renewal_day: number;       // 更新日（毎月何日か）
+  cancel_note: string | null; // 解約ルール
+  memo: string | null;        // メモ
+  is_active: boolean;         // 解約済みはfalse
+  created_at: string;
+};
+
+export type SubscriptionInsert = Omit<Subscription, "id" | "created_at"> & {
+  id?: string;
+  created_at?: string;
+};
+
+export type SubscriptionUpdate = Partial<SubscriptionInsert>;
 
 // =============================================
 // 月次記録

@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { signOut } from "next-auth/react";
 import IncomeSourceForm from "@/components/IncomeSourceForm";
+import SubscriptionSection from "@/components/SubscriptionSection";
 import type { IncomeSource } from "@/types/database";
 import { markAppReady } from "@/lib/appReady";
 
@@ -171,6 +172,9 @@ export default function SettingsPage() {
           </div>
         )}
       </div>
+
+      {/* ==================== サブスク ==================== */}
+      <SubscriptionSection />
 
       {/* ==================== ログアウト ==================== */}
       <div className="mt-8 pt-6 border-t border-gray-200">

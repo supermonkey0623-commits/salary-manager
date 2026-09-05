@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
-import type { Expense, MonthlyRecord, ExtraIncome } from "@/types/database";
+import type { Expense, MonthlyRecord, ExtraIncome, Subscription } from "@/types/database";
 import type { SalaryBreakdown } from "@/lib/salary";
 import {
   EXPENSE_CATEGORIES,
@@ -229,6 +229,7 @@ export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [records, setRecords] = useState<MonthlyRecord[]>([]);
   const [extraIncomes, setExtraIncomes] = useState<ExtraIncome[]>([]);
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -243,10 +244,12 @@ export default function ExpensesPage() {
     const year = ym.split("-")[0];
     try {
       // 支出は月単位、収入系は年単位（件数が少ないため）。並列で取得する
-      const [expRes, recRes, extraRes] = await Promise.all([
+      // サブスクは件数が少なく応答も軽いため、他と並列で取得しても遅くならない
+      const [expRes, recRes, extraRes, subRes] = await Promise.all([
         fetch(`/api/expenses?month=${ym}`),
         fetch(`/api/monthly-records?year=${year}`),
         fetch(`/api/extra-incomes?year=${year}`),
+        fetch("/api/subscriptions"),
       ]);
 
       if (expRes.status === 401) {
@@ -266,6 +269,8 @@ export default function ExpensesPage() {
       setExpenses(expData);
       setRecords(recData);
       setExtraIncomes(extraData);
+      // サブスクは補助情報なので、取れなくても画面は成立させる
+      if (subRes.ok) setSubscriptions(await subRes.json());
     } catch {
       setError("通信エラーが発生しました");
     } finally {
@@ -349,6 +354,21 @@ export default function ExpensesPage() {
       .sort((a, b) => b.amount - a.amount);
   }, [expenses]);
 
+  // 契約中サブスクの月額合計
+  const activeSubs = useMemo(
+    () => subscriptions.filter((s) => s.is_active),
+    [subscriptions]
+  );
+  const subsTotal = useMemo(
+    () => activeSubs.reduce((sum, s) => sum + s.amount, 0),
+    [activeSubs]
+  );
+  // 表示中の月に固定費が計上済みか
+  const hasFixedCost = useMemo(
+    () => expenses.some((e) => e.category === "固定費"),
+    [expenses]
+  );
+
   // 追加時の初期日付：表示中の月に今日が含まれるなら今日、そうでなければ1日
   const defaultDate =
     toYearMonth(now) === yearMonth ? toDateString(now) : `${yearMonth}-01`;
@@ -382,6 +402,19 @@ export default function ExpensesPage() {
       setExpenses((prev) => prev.filter((e) => e.id !== temp.id));
       setError("保存に失敗しました");
     }
+  };
+
+  // サブスクの月額合計を「固定費」として当月へ計上する
+  // 毎月手入力していた1行を、登録済みサブスクから自動で組み立てる
+  const handleAddFixedCost = () => {
+    const month = Number(yearMonth.split("-")[1]);
+    handleCreate({
+      date: `${yearMonth}-01`,
+      item: `${month}月固定費`,
+      amount: String(subsTotal),
+      category: "固定費",
+      payment_method: "クレジットカード",
+    });
   };
 
   // 更新（楽観的更新）
@@ -504,6 +537,29 @@ export default function ExpensesPage() {
       >
         ＋ 支出を追加
       </button>
+
+      {/* サブスクの固定費をワンタップで計上（未計上の月だけ出す） */}
+      {!loading && !hasFixedCost && subsTotal > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-4">
+          <div className="flex items-center justify-between gap-3 mb-2.5">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-amber-900">固定費が未計上です</p>
+              <p className="text-xs text-amber-700 mt-0.5">
+                契約中のサブスク{activeSubs.length}件の合計
+              </p>
+            </div>
+            <span className="text-lg font-bold text-amber-900 shrink-0">
+              {yen(subsTotal)}
+            </span>
+          </div>
+          <button
+            onClick={handleAddFixedCost}
+            className="btn3d btn-soft-orange w-full py-2.5 text-sm"
+          >
+            固定費として計上する
+          </button>
+        </div>
+      )}
 
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-600 mb-4">
