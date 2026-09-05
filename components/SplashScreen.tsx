@@ -4,21 +4,36 @@ import { useEffect, useState } from "react";
 
 // =============================================
 // 起動時のスプラッシュ画面
-// アプリを開いてから読み込みが終わるまでの数秒を覆い隠す。
-// ロゴはSVGを直接埋め込み、画像の読み込みを待たずに即描画されるようにする。
+//
+// 「開いた瞬間に出す」ことを最優先にしているため、
+//  ・スタイルは全てインライン（TailwindのCSSファイルの読み込みを待たない）
+//  ・ロゴはSVG直書き（画像ファイルの取得を待たない）
+// としてある。HTMLが描画された時点で完成した状態で表示される。
 // =============================================
 
 // ちらつき防止の最低表示時間
-const MIN_VISIBLE_MS = 450;
+const MIN_VISIBLE_MS = 400;
 // 読み込みが終わらない場合でも必ず消す上限
 const MAX_VISIBLE_MS = 3000;
-// フェードアウトにかける時間（globals.css の duration と揃える）
-const FADE_MS = 320;
+// フェードアウトにかける時間
+const FADE_MS = 300;
+
+// JSが動かなかった場合の保険（CSSだけで必ず消えるようにする）
+const FALLBACK_CSS = `
+@keyframes splashAutoHide { to { opacity: 0; visibility: hidden; } }
+#app-splash { animation: splashAutoHide 400ms ease 4000ms forwards; }
+`;
 
 // ブタの貯金箱（アイコンと同じ絵柄）
-function PiggyLogo({ className }: { className?: string }) {
+function PiggyLogo({ size }: { size: number }) {
   return (
-    <svg viewBox="0 0 512 512" className={className} aria-hidden="true">
+    <svg
+      viewBox="0 0 512 512"
+      width={size}
+      height={size}
+      aria-hidden="true"
+      style={{ display: "block" }}
+    >
       {/* 脚 */}
       <rect x="146" y="350" width="82" height="106" rx="36" fill="#E87BA6" />
       <rect x="284" y="350" width="82" height="106" rx="36" fill="#E87BA6" />
@@ -91,14 +106,39 @@ export default function SplashScreen() {
   if (phase === "gone") return null;
 
   return (
-    <div
-      className={`splash-screen fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center transition-opacity duration-300 ${
-        phase === "fading" ? "opacity-0" : "opacity-100"
-      }`}
-      aria-hidden="true"
-    >
-      <PiggyLogo className="w-32 h-32" />
-      <p className="absolute bottom-16 text-sm text-gray-400">給与管理</p>
-    </div>
+    <>
+      <style dangerouslySetInnerHTML={{ __html: FALLBACK_CSS }} />
+      <div
+        id="app-splash"
+        aria-hidden="true"
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 100,
+          background: "#ffffff",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          opacity: phase === "fading" ? 0 : 1,
+          transition: `opacity ${FADE_MS}ms ease`,
+        }}
+      >
+        <PiggyLogo size={128} />
+        <p
+          style={{
+            position: "absolute",
+            bottom: "4rem",
+            margin: 0,
+            fontSize: "0.875rem",
+            color: "#9ca3af",
+            fontFamily:
+              "system-ui, -apple-system, 'Hiragino Kaku Gothic ProN', sans-serif",
+          }}
+        >
+          給与管理
+        </p>
+      </div>
+    </>
   );
 }

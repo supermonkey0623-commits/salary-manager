@@ -1,7 +1,8 @@
 import BottomNav from "@/components/BottomNav";
-import PageTransition from "@/components/PageTransition";
 
 // 認証済みユーザー向けの共通レイアウト（ボトムナビ付き）
+// 画面遷移のアニメーションは template.tsx が担当する
+// （layout は遷移で再マウントされないため、template を使う必要がある）
 export default function ProtectedLayout({
   children,
 }: {
@@ -9,10 +10,7 @@ export default function ProtectedLayout({
 }) {
   return (
     <div className="min-h-screen pb-32 overflow-x-hidden">
-      <main className="max-w-lg mx-auto">
-        {/* タブ移動時に左右へスライドさせる */}
-        <PageTransition>{children}</PageTransition>
-      </main>
+      <main className="max-w-lg mx-auto">{children}</main>
       <BottomNav />
     </div>
   );
