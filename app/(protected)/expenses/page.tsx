@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import type { Expense, MonthlyRecord, ExtraIncome } from "@/types/database";
+import type { SalaryBreakdown } from "@/lib/salary";
 import {
   EXPENSE_CATEGORIES,
   PAYMENT_METHODS,
@@ -191,7 +192,7 @@ function ExpenseSheet({
             type="date"
             value={form.date}
             onChange={(e) => set("date", e.target.value)}
-            className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-auto max-w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
       </div>
@@ -232,6 +233,9 @@ export default function ExpensesPage() {
   const [error, setError] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
+  // 給与明細（カレンダーからの見込み額）。実績が未入力の月だけ使う
+  const [estimate, setEstimate] = useState<number | null>(null);
+  const [estimateLoading, setEstimateLoading] = useState(false);
 
   const fetchAll = useCallback(async (ym: string) => {
     setLoading(true);
@@ -280,18 +284,59 @@ export default function ExpensesPage() {
     setYearMonth(toYearMonth(new Date(y, m - 1 + delta, 1)));
   };
 
+  // その月の給与明細の実績が入力済みか
+  const hasActualIncome = useMemo(
+    () => records.some((r) => r.year_month === yearMonth),
+    [records, yearMonth]
+  );
+
+  // 実績が未入力の月だけ、給与明細の見込み額を後追いで取得する。
+  // 初期表示をブロックしないよう、主要データの取得とは分けている
+  // （カレンダーAPIはGoogleへの問い合わせが入るため遅い）
+  useEffect(() => {
+    if (hasActualIncome) {
+      setEstimate(null);
+      return;
+    }
+    let cancelled = false;
+    setEstimateLoading(true);
+    fetch(`/api/calendar?month=${yearMonth}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled || !data) return;
+        const total = (data.salaries ?? [])
+          .filter((s: SalaryBreakdown) => s.source.is_active !== false)
+          .reduce((sum: number, s: SalaryBreakdown) => sum + s.total, 0);
+        setEstimate(total);
+      })
+      .catch(() => {
+        // 見込みは補助情報のため、取得できなくても画面は成立させる
+      })
+      .finally(() => {
+        if (!cancelled) setEstimateLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [yearMonth, hasActualIncome]);
+
   // 月の集計（件数が少ないためクライアント側で計算し、集計用の通信は増やさない）
   const summary = useMemo(() => {
     const spent = expenses.reduce((s, e) => s + e.amount, 0);
-    // 口座入金額 = 各収入源の(支給額 − 所得税 − その他控除) + その他収入
-    const monthRecords = records.filter((r) => r.year_month === yearMonth);
-    const income =
-      monthRecords.reduce(
-        (s, r) => s + r.gross_amount - r.income_tax - r.other_deduction,
-        0
-      ) + (extraIncomes.find((e) => e.year_month === yearMonth)?.amount ?? 0);
+    const extra = extraIncomes.find((e) => e.year_month === yearMonth)?.amount ?? 0;
+    // 実績あり：各収入源の(支給額 − 所得税 − その他控除)
+    // 実績なし：給与明細の見込み額を仮の入金額として使う
+    const base = hasActualIncome
+      ? records
+          .filter((r) => r.year_month === yearMonth)
+          .reduce(
+            (s, r) => s + r.gross_amount - r.income_tax - r.other_deduction,
+            0
+          )
+      : estimate ?? 0;
+    const income = base + extra;
     return { spent, income, saving: income - spent };
-  }, [expenses, records, extraIncomes, yearMonth]);
+  }, [expenses, records, extraIncomes, yearMonth, hasActualIncome, estimate]);
 
   // カテゴリ別の内訳（多い順）
   const byCategory = useMemo(() => {
@@ -418,9 +463,15 @@ export default function ExpensesPage() {
       {/* 月次サマリ */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4">
         <div className="flex justify-between items-center mb-2">
-          <span className="text-sm text-gray-500">口座入金</span>
+          <span className="text-sm text-gray-500">
+            {hasActualIncome ? "口座入金" : "口座入金（仮）"}
+          </span>
           <span className="text-sm font-semibold text-gray-700">
-            {yen(summary.income)}
+            {!hasActualIncome && estimateLoading ? (
+              <span className="text-gray-300">計算中...</span>
+            ) : (
+              yen(summary.income)
+            )}
           </span>
         </div>
         <div className="flex justify-between items-center mb-2">
@@ -439,6 +490,11 @@ export default function ExpensesPage() {
             {yen(summary.saving)}
           </span>
         </div>
+        {!hasActualIncome && (
+          <p className="text-xs text-gray-400 mt-2">
+            給与明細がまだ未入力のため、カレンダーからの見込み額を仮の入金額として計算しています。
+          </p>
+        )}
       </div>
 
       {/* 追加ボタン */}
