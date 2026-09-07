@@ -1,10 +1,8 @@
 "use client";
 
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect } from "react";
-
-// ボトムナビと同じ並び順。スワイプで隣のタブへ移動する
-const NAV_ORDER = ["/payslip", "/chart", "/annual", "/expenses", "/settings"];
+import { NAV_ORDER, navIndex, useParallaxNavigate } from "@/lib/navigation";
 
 // 遷移と判定する最小の横移動量（px）
 const MIN_DISTANCE = 55;
@@ -19,10 +17,11 @@ const MAX_DURATION = 800;
 // 画面のどこを触っても、左右にスワイプすれば隣のタブへ移動する。
 // 横スクロールする要素やシート類の上では無効にするため、
 // それらには data-no-swipe を付けてある。
+// 遷移はボトムナビと同じパララックスを使う。
 // =============================================
 export default function SwipeNavigator() {
-  const router = useRouter();
   const pathname = usePathname();
+  const navigate = useParallaxNavigate();
 
   useEffect(() => {
     let startX = 0;
@@ -63,14 +62,14 @@ export default function SwipeNavigator() {
       if (Math.abs(dx) < MIN_DISTANCE) return;
       if (Math.abs(dx) < Math.abs(dy) * HORIZONTAL_RATIO) return;
 
-      const current = NAV_ORDER.findIndex((p) => pathname.startsWith(p));
-      if (current === -1) return;
+      const current = navIndex(pathname);
+      if (!NAV_ORDER.some((p) => pathname.startsWith(p))) return;
 
       // 左へスワイプ＝次のタブ、右へスワイプ＝前のタブ
       const nextIndex = dx < 0 ? current + 1 : current - 1;
       if (nextIndex < 0 || nextIndex >= NAV_ORDER.length) return;
 
-      router.push(NAV_ORDER[nextIndex]);
+      navigate(NAV_ORDER[nextIndex]);
     };
 
     document.addEventListener("touchstart", handleStart, { passive: true });
@@ -79,7 +78,7 @@ export default function SwipeNavigator() {
       document.removeEventListener("touchstart", handleStart);
       document.removeEventListener("touchend", handleEnd);
     };
-  }, [pathname, router]);
+  }, [pathname, navigate]);
 
   return null;
 }

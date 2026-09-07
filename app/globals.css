@@ -235,6 +235,92 @@ a {
 }
 
 /* =============================================
+   パララックス遷移（View Transitions API）
+   古い画面をゆっくり（30%）、新しい画面を全速（100%）で動かすことで
+   奥行きを出す。新旧のスナップショットはブラウザが用意してくれる。
+   ============================================= */
+
+/* APIが使える環境では、フォールバック用のスライドを止めて二重掛けを防ぐ */
+html.vt-enabled .page-enter-right,
+html.vt-enabled .page-enter-left {
+  animation: none;
+}
+
+/* 既定のクロスフェードを打ち消す（自前のアニメーションだけを効かせる） */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+/* ボトムナビは遷移中も動かさない。
+   view-transition-name を与えると root のスナップショットから切り離され、
+   ナビだけがその場に留まる（付けないと画面と一緒に流れてしまう） */
+.bottom-nav {
+  view-transition-name: bottom-nav;
+}
+
+@keyframes parallaxOutToLeft {
+  from {
+    transform: translateX(0);
+    filter: brightness(1);
+  }
+  to {
+    transform: translateX(-30%);
+    filter: brightness(0.85);
+  }
+}
+
+@keyframes parallaxInFromRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes parallaxOutToRight {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes parallaxInFromLeft {
+  from {
+    transform: translateX(-30%);
+    filter: brightness(0.85);
+  }
+  to {
+    transform: translateX(0);
+    filter: brightness(1);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* 進む：古い画面が左へ少しだけ引き、新しい画面が右から被さる */
+  html[data-nav-dir="forward"]::view-transition-old(root) {
+    animation: parallaxOutToLeft 340ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  html[data-nav-dir="forward"]::view-transition-new(root) {
+    animation: parallaxInFromRight 340ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    z-index: 1;
+  }
+
+  /* 戻る：古い画面が右へ退き、その下から前の画面が戻ってくる */
+  html[data-nav-dir="back"]::view-transition-old(root) {
+    animation: parallaxOutToRight 340ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    z-index: 1;
+  }
+  html[data-nav-dir="back"]::view-transition-new(root) {
+    animation: parallaxInFromLeft 340ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+
+/* =============================================
    アニメーション抑制設定を尊重する
    ============================================= */
 @media (prefers-reduced-motion: reduce) {
