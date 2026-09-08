@@ -6,7 +6,7 @@
 - Backend: Vercel Functions
 - DB: Supabase
 - 認証: Google OAuth 2.0
-- AI: Anthropic Claude API
+- AI: Anthropic Codex API
 
 # コーディングルール
 - コメントは日本語で書く

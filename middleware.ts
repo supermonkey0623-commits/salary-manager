@@ -36,6 +36,6 @@ export default async function middleware(req: NextRequest) {
 //   - 拡張子付きの静的ファイル全般（.png .ico .svg など。末尾の \..* で判定）
 export const config = {
   matcher: [
-    "/((?!login|api/auth|api/health|manifest.webmanifest|icon|apple-icon|_next/static|_next/image|favicon.ico|.*\\..*).*)",
+    "/((?!login|api/auth|api/health|api/mcp|manifest.webmanifest|icon|apple-icon|_next/static|_next/image|favicon.ico|.*\\..*).*)",
   ],
 };
