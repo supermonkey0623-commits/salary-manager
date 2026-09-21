@@ -17,6 +17,7 @@ import {
   yen,
 } from "@/lib/expense";
 import { markAppReady } from "@/lib/appReady";
+import { payoutMonth } from "@/lib/taxYear";
 
 // 月を YYYY-MM 形式にフォーマット
 function toYearMonth(date: Date): string {
@@ -408,14 +409,14 @@ export default function ExpensesPage() {
   const fetchAll = useCallback(async (ym: string) => {
     setLoading(true);
     setError("");
-    const year = ym.split("-")[0];
     try {
-      // 支出は月単位、収入系は年単位（件数が少ないため）。並列で取得する
+      // すべて表示中の1か月分だけ取得する。並列で取得する
+      // （年間DBは働いた月で記録しているので、家計簿の月とそのまま対応する）
       // サブスクは件数が少なく応答も軽いため、他と並列で取得しても遅くならない
       const [expRes, recRes, extraRes, subRes] = await Promise.all([
         fetch(`/api/expenses?month=${ym}`),
-        fetch(`/api/monthly-records?year=${year}`),
-        fetch(`/api/extra-incomes?year=${year}`),
+        fetch(`/api/monthly-records?month=${ym}`),
+        fetch(`/api/extra-incomes?month=${ym}`),
         fetch("/api/subscriptions"),
       ]);
 
@@ -701,7 +702,8 @@ export default function ExpensesPage() {
         </div>
         {!hasActualIncome && (
           <p className="text-xs text-gray-400 mt-2">
-            給与明細がまだ未入力のため、カレンダーからの見込み額を仮の入金額として計算しています。
+            {Number(yearMonth.split("-")[1])}月分の給与明細（{payoutMonth(yearMonth)} 支給）が
+            まだ未入力のため、カレンダーの勤務予定からの見込み額を仮の入金額として計算しています。
           </p>
         )}
       </div>

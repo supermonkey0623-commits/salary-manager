@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { computeSalaries } from "@/lib/payslip";
 import { getGoogleAccessToken } from "@/lib/googleAccessToken";
 import { monthRange } from "@/lib/expense";
+import { taxYearRange, payoutMonth } from "@/lib/taxYear";
 import type { Expense, MonthlyRecord, ExtraIncome, Subscription, IncomeSource } from "@/types/database";
 
 // =============================================
@@ -73,12 +74,12 @@ function asText(value: unknown) {
 const MONTH = z
   .string()
   .regex(/^\d{4}-\d{2}$/, "YYYY-MM 形式で指定してください")
-  .describe("対象年月。例: 2026-09");
+  .describe("対象年月。例: 2026-09。給与は「働いた月」で指定する（支給はその翌月）");
 
 const YEAR = z
   .string()
   .regex(/^\d{4}$/, "YYYY 形式で指定してください")
-  .describe("対象年。例: 2026");
+  .describe("対象年。例: 2026。確定申告に合わせ前年12月〜当年11月の勤務分を集計する");
 
 // 実績（年間DB）から、その月の口座入金額を求める
 function depositFromRecords(records: MonthlyRecord[]): number {
@@ -142,7 +143,9 @@ function buildServer(): McpServer {
       title: "給与の実績を取得",
       description:
         "指定年の給与明細の実績（手入力済み）を月ごとに返す。支給額・所得税・その他控除・口座入金額を含む。" +
-        "確定した金額を知りたいときはこちらを使う。",
+        "確定した金額を知りたいときはこちらを使う。" +
+        "年月は「働いた月」で記録されており、支給はその翌月になる。" +
+        "確定申告に合わせ、指定年の集計対象は前年12月〜当年11月の勤務分（＝その暦年に支給された分）。",
       inputSchema: { year: YEAR },
       annotations: readOnly,
     },
@@ -150,17 +153,20 @@ function buildServer(): McpServer {
       const { data, error } = await supabase
         .from("monthly_records")
         .select("*")
-        .gte("year_month", `${year}-01`)
-        .lte("year_month", `${year}-12`)
+        .gte("year_month", taxYearRange(Number(year)).from)
+        .lte("year_month", taxYearRange(Number(year)).to)
         .order("year_month", { ascending: true });
 
       if (error) return asText({ error: error.message });
 
       const records = (data ?? []) as MonthlyRecord[];
+      const range = taxYearRange(Number(year));
       return asText({
         year,
+        basis: `確定申告ベース。${range.from}〜${range.to} に働いた分（＝${year}年に支給された分）`,
         records: records.map((r) => ({
           yearMonth: r.year_month,
+          paidIn: payoutMonth(r.year_month),
           source: r.income_source_name,
           gross: r.gross_amount,
           incomeTax: r.income_tax,
@@ -226,7 +232,8 @@ function buildServer(): McpServer {
       title: "月の収支まとめを取得",
       description:
         "指定月の収入・支出・貯蓄をまとめて返す。給与実績が未入力の月は、" +
-        "カレンダーから算出した見込み額を仮の収入として使う（isEstimatedで判別できる）。",
+        "カレンダーから算出した見込み額を仮の収入として使う（isEstimatedで判別できる）。" +
+        "収入はその月に働いた分（支給は翌月）、支出はその月に使った分で対応させている。",
       inputSchema: { month: MONTH },
       annotations: readOnly,
     },
@@ -262,6 +269,7 @@ function buildServer(): McpServer {
 
       return asText({
         month,
+        paidIn: payoutMonth(month),
         income,
         isEstimated,
         note: isEstimated

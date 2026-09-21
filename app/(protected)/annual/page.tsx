@@ -3,19 +3,18 @@
 import { useEffect, useState, useCallback } from "react";
 import type { IncomeSource, MonthlyRecord, ExtraIncome } from "@/types/database";
 import { markAppReady } from "@/lib/appReady";
+import { taxYearMonths, payoutMonth } from "@/lib/taxYear";
 
 function yen(n: number): string {
   return `¥${Math.floor(n).toLocaleString()}`;
 }
 
-// "2026-03" → "3月"
-function monthLabel(ym: string): string {
-  return `${Number(ym.split("-")[1])}月`;
+// "2026-03" → "3月"。表示中の年と違う年（＝前年12月）は年も添えて区別する
+function monthLabel(ym: string, year?: number): string {
+  const [y, m] = ym.split("-").map(Number);
+  const base = `${m}月`;
+  return year !== undefined && y !== year ? `'${String(y).slice(2)} ${base}` : base;
 }
-
-const MONTHS = Array.from({ length: 12 }, (_, i) =>
-  String(i + 1).padStart(2, "0")
-);
 
 // 控除額合計（所得税＋その他控除）
 function deductionOf(r: MonthlyRecord): number {
@@ -69,14 +68,13 @@ function MonthlyTable({
       </div>
 
       <div className="divide-y divide-gray-50">
-        {MONTHS.map((mm) => {
-          const ym = `${year}-${mm}`;
+        {taxYearMonths(year).map((ym) => {
           const rec = recordMap.get(ym) ?? null;
           const takeHome = rec ? takeHomeOf(rec) : 0;
 
           return (
             <div key={ym} className="grid grid-cols-4 items-center px-4 py-2.5">
-              <span className="text-sm text-gray-700 font-medium">{monthLabel(ym)}</span>
+              <span className="text-sm text-gray-700 font-medium">{monthLabel(ym, year)}</span>
               <span className="text-sm text-right text-gray-800">
                 {rec ? yen(rec.gross_amount) : <span className="text-gray-300">—</span>}
               </span>
@@ -126,7 +124,7 @@ function ExtraTable({
         </div>
       </div>
 
-      <div className="grid grid-cols-[3rem_1fr_1fr_4rem] px-4 py-1.5 text-xs text-gray-400 border-b border-gray-50">
+      <div className="grid grid-cols-[4.5rem_1fr_1fr_4rem] px-4 py-1.5 text-xs text-gray-400 border-b border-gray-50">
         <span>月</span>
         <span className="text-right">金額</span>
         <span className="text-right">メモ</span>
@@ -134,17 +132,16 @@ function ExtraTable({
       </div>
 
       <div className="divide-y divide-gray-50">
-        {MONTHS.map((mm) => {
-          const ym = `${year}-${mm}`;
+        {taxYearMonths(year).map((ym) => {
           const extra = extraMap.get(ym) ?? null;
           const amount = extra?.amount ?? 0;
 
           return (
             <div
               key={ym}
-              className="grid grid-cols-[3rem_1fr_1fr_4rem] items-center px-4 py-2.5"
+              className="grid grid-cols-[4.5rem_1fr_1fr_4rem] items-center px-4 py-2.5"
             >
-              <span className="text-sm text-gray-700 font-medium">{monthLabel(ym)}</span>
+              <span className="text-sm text-gray-700 font-medium">{monthLabel(ym, year)}</span>
               <span
                 className={`text-sm text-right font-medium ${
                   amount > 0 ? "text-emerald-600" : "text-gray-200"
@@ -211,7 +208,7 @@ function TotalTable({
       </div>
 
       {/* 列ヘッダー */}
-      <div className="grid grid-cols-[3rem_1fr_1fr_1fr] px-4 py-1.5 text-xs text-gray-400 border-b border-gray-50">
+      <div className="grid grid-cols-[4.5rem_1fr_1fr_1fr] px-4 py-1.5 text-xs text-gray-400 border-b border-gray-50">
         <span>月</span>
         <span className="text-right">合計</span>
         <span className="text-right">控除</span>
@@ -219,8 +216,7 @@ function TotalTable({
       </div>
 
       <div className="divide-y divide-gray-50">
-        {MONTHS.map((mm) => {
-          const ym = `${year}-${mm}`;
+        {taxYearMonths(year).map((ym) => {
           const monthRecords = records.filter((r) => r.year_month === ym);
           const extraAmount = extraMap.get(ym)?.amount ?? 0;
           const gross =
@@ -231,9 +227,9 @@ function TotalTable({
           return (
             <div
               key={ym}
-              className="grid grid-cols-[3rem_1fr_1fr_1fr] items-center px-4 py-2.5"
+              className="grid grid-cols-[4.5rem_1fr_1fr_1fr] items-center px-4 py-2.5"
             >
-              <span className="text-sm text-gray-700 font-medium">{monthLabel(ym)}</span>
+              <span className="text-sm text-gray-700 font-medium">{monthLabel(ym, year)}</span>
               <span
                 className={`text-sm text-right font-semibold ${
                   hasData ? "text-blue-600" : "text-gray-200"
@@ -317,7 +313,7 @@ function ExtraIncomeSheet({
       >
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-gray-800">
-            {monthLabel(yearMonth)}のその他収入
+            {monthLabel(yearMonth)}分のその他収入
           </h3>
           <button
             onClick={onClose}
@@ -330,6 +326,7 @@ function ExtraIncomeSheet({
 
         <p className="text-xs text-gray-400 mb-4">
           タイミー等の臨時収入を入力します。合計に加算されます。
+          {yearMonth} に働いた分（{payoutMonth(yearMonth)} 支給）として記録されます。
         </p>
 
         <div className="space-y-3">
@@ -489,9 +486,11 @@ function EditSheet({
         </button>
         <div>
           <h3 className="font-semibold text-gray-800 leading-tight">
-            {monthLabel(target.yearMonth)}　{target.source.name}
+            {monthLabel(target.yearMonth)}分　{target.source.name}
           </h3>
-          <p className="text-xs text-gray-400">{target.yearMonth}</p>
+          <p className="text-xs text-gray-400">
+            {target.yearMonth} 勤務分（{payoutMonth(target.yearMonth)} 支給）
+          </p>
         </div>
       </div>
 
@@ -635,7 +634,12 @@ export default function AnnualPage() {
           >
             ‹
           </button>
-          <h1 className="text-xl font-bold text-gray-900">{year}年</h1>
+          <div className="text-center">
+            <h1 className="text-xl font-bold text-gray-900">{year}年</h1>
+            <p className="text-[11px] text-gray-400 leading-tight">
+              {year - 1}年12月〜{year}年11月の勤務分（＝{year}年に支給）
+            </p>
+          </div>
           <button
             onClick={() => { setYear((y) => y + 1); setActiveTab(0); }}
             className="btn-press w-10 h-10 flex items-center justify-center text-xl text-gray-500 hover:bg-gray-100 rounded-xl"
