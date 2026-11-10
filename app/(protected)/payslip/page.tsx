@@ -242,7 +242,7 @@ function SalaryCard({ salary }: { salary: SalaryBreakdown }) {
       <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
         <h2 className="font-semibold text-gray-800">{s.name}</h2>
         <p className="text-xs text-gray-500 mt-0.5">
-          勤務 {salary.workDays}日 / キーワード：{s.keyword}
+          勤務 {salary.workDays}日 / {s.calendar_id ? "専用カレンダー" : `キーワード：${s.keyword}`}
           {s.default_break_minutes > 0 && `　/ デフォルト休憩 ${s.default_break_minutes}分`}
         </p>
       </div>

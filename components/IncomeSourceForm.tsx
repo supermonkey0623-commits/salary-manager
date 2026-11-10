@@ -83,7 +83,7 @@ export default function IncomeSourceForm({ initial, onSave, onCancel }: Props) {
       {field("カレンダーキーワード", "keyword", "text", true, "例：やよい")}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          カレンダーID<span className="text-xs text-gray-400 ml-1">（設定するとそのカレンダーのみ検索）</span>
+          カレンダーID<span className="text-xs text-gray-400 ml-1">（設定するとそのカレンダーの予定をすべて勤務として計算。キーワードは使わない）</span>
         </label>
         <input
           type="text"

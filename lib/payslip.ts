@@ -149,10 +149,17 @@ export async function computeSalaries(
   // 収入源ごとに取得先カレンダーを切り替えてイベント取得→給与計算
   const salaries = await Promise.all(
     list.map(async (source) => {
-      const events = source.calendar_id
-        ? await fetchEvents(source.calendar_id)
-        : allCalendarEvents;
-      const matched = events.filter((ev) => matchesKeyword(ev.summary, source.keyword));
+      // 専用カレンダーがある収入源は、そのカレンダーの予定をすべて勤務として扱う。
+      // カレンダー自体が収入源ごとに分かれているので、タイトルで絞る必要がない。
+      // （タイトルでも絞ると「NEXTMTG」「MTG」のような予定が漏れていた）
+      // 終日の予定は calcSalary 側で除外される
+      if (source.calendar_id) {
+        return calcSalary(source, await fetchEvents(source.calendar_id));
+      }
+      // 専用カレンダーが無い収入源だけ、全カレンダーからキーワードで拾う
+      const matched = allCalendarEvents.filter((ev) =>
+        matchesKeyword(ev.summary, source.keyword)
+      );
       return calcSalary(source, matched);
     })
   );

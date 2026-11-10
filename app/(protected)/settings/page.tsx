@@ -227,7 +227,7 @@ export default function SettingsPage() {
                       )}
                     </div>
                     <p className="text-xs text-gray-500 mt-0.5">
-                      キーワード：{src.keyword}　時給：¥
+                      {src.calendar_id ? "専用カレンダー" : `キーワード：${src.keyword}`}　時給：¥
                       {src.hourly_rate.toLocaleString()}
                     </p>
                     <p className="text-xs text-gray-400 mt-0.5">
